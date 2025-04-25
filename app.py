@@ -351,13 +351,14 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('regime_casamento', ''), 0, 1)
         pdf.ln(5)
         
-        # Endereço
+        # Endereço (com espaço ajustado)
         pdf.set_font('Arial', 'B', 11)
-        pdf.cell(0, 7, 'ENDEREÇO ', 0, 1)
+        pdf.cell(0, 7, 'ENDEREÇO', 0, 1)
         pdf.set_font('Arial', '', 10)
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
         pdf.cell(25, 6, dados.get('cep', ''), 0, 0)
+        pdf.cell(5, 6, '', 0, 0)  # Espaço adicional
         pdf.cell(20, 6, 'ENDEREÇO: ', 'B', 0)
         pdf.cell(0, 6, dados.get('endereco', ''), 0, 1)
         
@@ -385,7 +386,7 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.cell(40, 6, dados.get('cpf_conjuge', ''), 0, 0)
             pdf.cell(25, 6, 'CELULAR:', 0, 0)
             pdf.cell(0, 6, dados.get('celular_conjuge', ''), 0, 1)
-            pdf.cell(20, 6, 'E-MAIL:', 0, 0)
+            pdf.cell(20, 6, 'E-MAIL:', 0, 0)  # Linha adicionada para o e-mail do cônjuge
             pdf.cell(0, 6, dados.get('email_conjuge', ''), 0, 1)
             
             pdf.cell(35, 6, 'NACIONALIDADE:', 0, 0)
@@ -404,13 +405,14 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.cell(0, 6, dados.get('regime_casamento_conjuge', ''), 0, 1)
             pdf.ln(5)
             
-            # Endereço do Cônjuge
+            # Endereço do Cônjuge (com espaço ajustado)
             pdf.set_font('Arial', 'B', 11)
-            pdf.cell(0, 7, 'ENDEREÇO DO CÔNJUGE ', 0, 1)
+            pdf.cell(0, 7, 'ENDEREÇO DO CÔNJUGE', 0, 1)
             pdf.set_font('Arial', '', 10)
             
             pdf.cell(15, 6, 'CEP:', 0, 0)
             pdf.cell(25, 6, dados.get('cep_conjuge', ''), 0, 0)
+            pdf.cell(5, 6, '', 0, 0)  # Espaço adicional
             pdf.cell(20, 6, 'ENDEREÇO: ', 'B', 0)
             pdf.cell(0, 6, dados.get('endereco_conjuge', ''), 0, 1)
             
@@ -425,6 +427,7 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.cell(0, 6, dados.get('estado_conjuge', ''), 0, 1)
             pdf.ln(5)
         
+       
         # Termo de consentimento
         pdf.set_font('Arial', '', 8)
         pdf.multi_cell(0, 4, 'Para os fins da Lei 13.709/18, o titular concorda com: (i) o tratamento de seus dados pessoais e de seu cônjuge, quando for o caso, para os fins relacionados ao cumprimento das obrigações previstas na Lei, nesta ficha cadastral ou dela decorrente; e (ii) o envio de seus dados pessoais e da documentação respectiva a órgãos e entidades tais como a Secretaria da Fazenda Municipal, administração do condomínio, Cartórios, ao credor fiduciário, à companhia securitizadora e a outras pessoas, nos limites permitidos em Lei.')
@@ -433,13 +436,20 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.ln(8)
         pdf.set_font('Arial', '', 10)
         col_width = pdf.w / 2 - 15
-        pdf.cell(col_width, 6, 'ASSINATURA DO 1° PROPONENTE', 0, 0)
-        pdf.cell(col_width, 6, 'ASSINATURA DO 2° PROPONENTE', 0, 1)
         
-        pdf.cell(col_width, 6, '_______________________________', 0, 0)
-        pdf.cell(col_width, 6, '_______________________________', 0, 1)
+        # 1° Proponente
+        pdf.cell(col_width, 6, 'ASSINATURA DO 1° PROPONENTE', 0, 0, 'C')
+        pdf.cell(col_width, 6, 'ASSINATURA DO 2° PROPONENTE', 0, 1, 'C')
         
-        pdf.cell(0, 5, f"UBERLÂNDIA/GO, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'C')
+        pdf.ln(10)  # Espaço adicional
+        
+        # Linhas de assinatura
+        pdf.cell(col_width, 6, '_______________________________', 0, 0, 'C')
+        pdf.cell(col_width, 6, '_______________________________', 0, 1, 'C')
+        
+        # Data centralizada abaixo
+        pdf.ln(5)
+        pdf.cell(0, 5, f"UBERLÂNDIA/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'C')
     
     else:
         # Formatação para Pessoa Jurídica (ajustada para ficar igual à PF)
@@ -564,9 +574,15 @@ def gerar_pdf_formatado(tipo, dados):
         # Assinatura
         pdf.ln(8)
         pdf.set_font('Arial', '', 10)
-        pdf.cell(0, 6, 'ASSINATURA DO ADMINISTRADOR', 0, 1)
-        pdf.cell(0, 6, '_______________________________', 0, 1)
-        pdf.cell(0, 5, f"SINOP/MT, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'C')
+        
+        # Assinatura do Administrador
+        pdf.cell(0, 6, 'ASSINATURA DO ADMINISTRADOR', 0, 1, 'C')
+        pdf.ln(10)  # Espaço adicional
+        pdf.cell(0, 6, '_______________________________', 0, 1, 'C')
+        
+        # Data centralizada abaixo
+        pdf.ln(5)
+        pdf.cell(0, 5, f"UBERLÂNDIA/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'C')
     
     # Salva o PDF temporariamente
     temp_dir = tempfile.mkdtemp()
