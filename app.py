@@ -358,7 +358,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
         pdf.cell(25, 6, dados.get('cep', ''), 0, 0)
-        pdf.cell(5, 6, '', 0, 0)  # Espaço adicional
+        pdf.cell(10, 6, '', 0, 0)  # Espaço adicional
         pdf.cell(20, 6, 'ENDEREÇO: ', 'B', 0)
         pdf.cell(0, 6, dados.get('endereco', ''), 0, 1)
         
@@ -369,6 +369,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
         pdf.cell(50, 6, dados.get('cidade', ''), 0, 0)
+        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
         pdf.cell(15, 6, 'ESTADO:', 0, 0)
         pdf.cell(0, 6, dados.get('estado', ''), 0, 1)
         pdf.ln(5)
@@ -412,7 +413,7 @@ def gerar_pdf_formatado(tipo, dados):
             
             pdf.cell(15, 6, 'CEP:', 0, 0)
             pdf.cell(25, 6, dados.get('cep_conjuge', ''), 0, 0)
-            pdf.cell(5, 6, '', 0, 0)  # Espaço adicional
+            pdf.cell(10, 6, '', 0, 0)  # Espaço adicional
             pdf.cell(20, 6, 'ENDEREÇO: ', 'B', 0)
             pdf.cell(0, 6, dados.get('endereco_conjuge', ''), 0, 1)
             
@@ -423,6 +424,7 @@ def gerar_pdf_formatado(tipo, dados):
             
             pdf.cell(20, 6, 'CIDADE:', 0, 0)
             pdf.cell(50, 6, dados.get('cidade_conjuge', ''), 0, 0)
+            pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
             pdf.cell(15, 6, 'ESTADO:', 0, 0)
             pdf.cell(0, 6, dados.get('estado_conjuge', ''), 0, 1)
             pdf.ln(5)
@@ -494,6 +496,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
         pdf.cell(25, 6, dados.get('cep_empresa', ''), 0, 0)
+        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
         pdf.cell(20, 6, 'ENDEREÇO: ', 'B', 0)
         pdf.cell(0, 6, dados.get('endereco_empresa', ''), 0, 1)
         
@@ -504,6 +507,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
         pdf.cell(50, 6, dados.get('cidade_empresa', ''), 0, 0)
+        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
         pdf.cell(15, 6, 'ESTADO:', 0, 0)
         pdf.cell(0, 6, dados.get('estado_empresa', ''), 0, 1)
         pdf.ln(5)
@@ -553,6 +557,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
         pdf.cell(25, 6, dados.get('cep_administrador', ''), 0, 0)
+        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
         pdf.cell(20, 6, 'ENDEREÇO: ', 'B', 0)
         pdf.cell(0, 6, dados.get('endereco_administrador', ''), 0, 1)
         
@@ -563,6 +568,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
         pdf.cell(50, 6, dados.get('cidade_administrador', ''), 0, 0)
+        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
         pdf.cell(15, 6, 'ESTADO:', 0, 0)
         pdf.cell(0, 6, dados.get('estado_administrador', ''), 0, 1)
         pdf.ln(5)
