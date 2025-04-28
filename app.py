@@ -710,7 +710,7 @@ with tab1:
         col1, col2 = st.columns(2)
         with col1:
             corretor = st.text_input("Corretor(a)")
-            imobiliaria = st.text_input("Imobiliária", value="Imobiliária Celeste Ltda Epp")
+            imobiliaria = st.text_input("Imobiliária", value=" ")
         with col2:
             numero_negocio = st.text_input("Nº do Negócio")
         
@@ -993,7 +993,7 @@ with tab2:
         col1, col2 = st.columns(2)
         with col1:
             corretor = st.text_input("Corretor(a)", key="corretor_pj")
-            imobiliaria = st.text_input("Imobiliária", key="imobiliaria_pj", value="Imobiliária Celeste Ltda Epp")
+            imobiliaria = st.text_input("Imobiliária", key="imobiliaria_pj", value=" ")
         with col2:
             numero_negocio = st.text_input("Nº do Negócio", key="numero_negocio_pj")
         
