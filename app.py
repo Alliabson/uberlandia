@@ -9,8 +9,52 @@ from typing import Optional, Dict
 import tempfile
 import os
 from fpdf import FPDF
+import time
 
-# Configuração da página
+
+
+
+def login():
+    # Centralizar manualmente o login
+    st.markdown("""
+        <style>
+            div.block-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 90vh;
+            }
+            div.css-1v0mbdj.e1g8pov64 {  /* Esse seletor pode mudar conforme a versão */
+                max-width: 400px;
+                width: 100%;
+                margin: auto;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.title("🔒 Login no Sistema")
+    
+    usuario_correto = "hamoa"
+    senha_correta = "hamoauberlandia"
+
+    usuario = st.text_input("🔍 Usuário")
+    senha = st.text_input("🔐 Senha", type="password")
+    
+    if st.button("Entrar"):
+        if usuario == usuario_correto and senha == senha_correta:
+            st.session_state['logado'] = True
+            st.success("✅ Login realizado com sucesso!")
+            st.rerun()
+        else:
+            st.error("❌ Usuário ou senha incorretos.")
+
+if 'logado' not in st.session_state or not st.session_state['logado']:
+    login()
+    st.stop()
+    st.rerun()
+
+
+# SEMPRE iniciar o app com layout="wide" (não usar centered no começo!)
 st.set_page_config(page_title="Sistema Imobiliário - Fichas Cadastrais", layout="wide")
 
 # Configuração do banco de dados
@@ -20,7 +64,7 @@ def criar_tabelas():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # Tabela Pessoa Física - Corrigida (removida a coluna duplicada uniao_estavel)
+    # Tabela Pessoa Física - Atualizada com campos do cônjuge
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS clientes_pf (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,6 +86,8 @@ def criar_tabelas():
         cidade TEXT,
         estado TEXT,
         nome_conjuge TEXT,
+        genero_conjuge TEXT,
+        data_nascimento_conjuge TEXT,
         cpf_conjuge TEXT,
         email_conjuge TEXT,  
         celular_conjuge TEXT,
@@ -107,6 +153,9 @@ def criar_tabelas():
 # Criar tabelas se não existirem
 criar_tabelas()
 
+# Criar tabelas se não existirem
+criar_tabelas()
+
 def verificar_e_atualizar_estrutura():
     """Verifica e atualiza a estrutura das tabelas conforme necessário"""
     conn = sqlite3.connect(DB_NAME)
@@ -121,9 +170,9 @@ def verificar_e_atualizar_estrutura():
             'nome', 'genero', 'data_nascimento', 'celular', 'cpf', 'email',
             'nacionalidade', 'profissao', 'estado_civil', 'regime_casamento',
             'uniao_estavel', 'cep', 'endereco', 'numero', 'bairro', 'cidade',
-            'estado', 'nome_conjuge', 'cpf_conjuge', 'email_conjuge',
-            'celular_conjuge', 'nacionalidade_conjuge', 'profissao_conjuge',
-            'estado_civil_conjuge', 'regime_casamento_conjuge',
+            'estado', 'nome_conjuge', 'genero_conjuge', 'data_nascimento_conjuge',
+            'cpf_conjuge', 'email_conjuge', 'celular_conjuge', 'nacionalidade_conjuge', 
+            'profissao_conjuge', 'estado_civil_conjuge', 'regime_casamento_conjuge',
             'uniao_estavel_conjuge', 'cep_conjuge', 'endereco_conjuge',
             'numero_conjuge', 'bairro_conjuge', 'cidade_conjuge',
             'estado_conjuge', 'data_cadastro', 'corretor', 'imobiliaria',
@@ -381,6 +430,12 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR:', 0, 0)
             pdf.cell(0, 6, dados.get('nome_conjuge', ''), 0, 1)
             
+            # Adicionados gênero e data de nascimento do cônjuge
+            pdf.cell(25, 6, 'GÊNERO:', 0, 0)
+            pdf.cell(25, 6, dados.get('genero_conjuge', ''), 0, 0)
+            pdf.cell(40, 6, 'DATA NASCIMENTO:', 0, 0)
+            pdf.cell(0, 6, dados.get('data_nascimento_conjuge', ''), 0, 1)
+            
             pdf.cell(20, 6, 'CPF:', 0, 0)
             pdf.cell(40, 6, dados.get('cpf_conjuge', ''), 0, 0)
             pdf.cell(25, 6, 'CELULAR:', 0, 0)
@@ -607,34 +662,36 @@ def carregar_clientes_pj():
 def salvar_cliente_pf(cliente):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    
     cursor.execute('''
     INSERT INTO clientes_pf (
-        nome, genero, data_nascimento, celular, cpf, email, nacionalidade, profissao,
-        estado_civil, regime_casamento, uniao_estavel, cep, endereco, numero, 
-        bairro, cidade, estado, nome_conjuge, cpf_conjuge, celular_conjuge, email_conjuge,
-        nacionalidade_conjuge, profissao_conjuge, estado_civil_conjuge,
-        regime_casamento_conjuge, uniao_estavel_conjuge, cep_conjuge, 
-        endereco_conjuge, numero_conjuge, bairro_conjuge, cidade_conjuge, 
-        estado_conjuge, data_cadastro, corretor, imobiliaria, numero_negocio
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        nome, genero, data_nascimento, celular, cpf, email,
+        nacionalidade, profissao, estado_civil, regime_casamento, uniao_estavel,
+        cep, endereco, numero, bairro, cidade, estado,
+        nome_conjuge, genero_conjuge, data_nascimento_conjuge, cpf_conjuge,
+        celular_conjuge, email_conjuge, nacionalidade_conjuge, profissao_conjuge,
+        estado_civil_conjuge, regime_casamento_conjuge, uniao_estavel_conjuge,
+        cep_conjuge, endereco_conjuge, numero_conjuge, bairro_conjuge,
+        cidade_conjuge, estado_conjuge, data_cadastro,
+        corretor, imobiliaria, numero_negocio
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ''', (
         cliente['nome'], cliente['genero'], cliente['data_nascimento'],
         cliente['celular'], cliente['cpf'], cliente.get('email', ''),
-        cliente['nacionalidade'], cliente['profissao'], cliente['estado_civil'], 
-        cliente['regime_casamento'], cliente['uniao_estavel'], cliente['cep'], 
-        cliente['endereco'], cliente['numero'], cliente['bairro'], cliente['cidade'], 
-        cliente['estado'], cliente['nome_conjuge'], cliente['cpf_conjuge'], 
-        cliente['celular_conjuge'], cliente.get('email_conjuge', ''),
-        cliente['nacionalidade_conjuge'], cliente['profissao_conjuge'],
-        cliente['estado_civil_conjuge'], cliente['regime_casamento_conjuge'],
-        cliente['uniao_estavel_conjuge'], cliente['cep_conjuge'], 
-        cliente['endereco_conjuge'], cliente['numero_conjuge'], 
-        cliente['bairro_conjuge'], cliente['cidade_conjuge'], cliente['estado_conjuge'],
-        cliente['data_cadastro'], cliente['corretor'], cliente['imobiliaria'],
-        cliente['numero_negocio']
+        cliente['nacionalidade'], cliente['profissao'], cliente['estado_civil'],
+        cliente['regime_casamento'], cliente['uniao_estavel'],
+        cliente['cep'], cliente['endereco'], cliente['numero'],
+        cliente['bairro'], cliente['cidade'], cliente['estado'],
+        cliente.get('nome_conjuge', ''), cliente.get('genero_conjuge', ''), 
+        cliente.get('data_nascimento_conjuge', ''), cliente.get('cpf_conjuge', ''),
+        cliente.get('celular_conjuge', ''), cliente.get('email_conjuge', ''), 
+        cliente.get('nacionalidade_conjuge', ''), cliente.get('profissao_conjuge', ''),
+        cliente.get('estado_civil_conjuge', ''), cliente.get('regime_casamento_conjuge', ''),
+        cliente.get('uniao_estavel_conjuge', ''), cliente.get('cep_conjuge', ''),
+        cliente.get('endereco_conjuge', ''), cliente.get('numero_conjuge', ''),
+        cliente.get('bairro_conjuge', ''), cliente.get('cidade_conjuge', ''),
+        cliente.get('estado_conjuge', ''), cliente['data_cadastro'], 
+        cliente['corretor'], cliente['imobiliaria'], cliente['numero_negocio']
     ))
-    
     conn.commit()
     conn.close()
 
@@ -714,48 +771,61 @@ with tab1:
         with col2:
             numero_negocio = st.text_input("Nº do Negócio")
         
-        # Dados do Cliente
+        # Dados do Cliente - Layout Compacto
         st.subheader("Dados do Cliente")
-        col1, col2 = st.columns(2)
-        with col1:
+        
+        # Linha 1: Gênero
+        genero = st.radio("Gênero", ["MASCULINO", "FEMININO"], horizontal=True)
+        
+        # Linha 2: Nome e Data Nascimento
+        linha1 = st.columns([2, 1])
+        with linha1[0]:
             nome = st.text_input("Nome Completo *")
-            genero = st.radio("Gênero", ["MASCULINO", "FEMININO"], horizontal=True)
+        with linha1[1]:
             data_nascimento = st.date_input("Data de Nascimento", 
-                                          value=None,
-                                          format="DD/MM/YYYY",
-                                          key="data_nascimento_pf")
-        with col2:
-            celular = st.text_input("Celular *", help="Formato: (00) 00000-0000", 
-                                  value=st.session_state.get("celular_pf", ""),
-                                  key="celular_pf")
+                                         value=None,
+                                         format="DD/MM/YYYY",
+                                         key="data_nascimento_pf")
+        
+        # Linha 3: CPF e Celular
+        linha2 = st.columns(2)
+        with linha2[0]:
             cpf = st.text_input("CPF *", help="Formato: 000.000.000-00", 
                               value=st.session_state.get("cpf_pf", ""),
                               key="cpf_pf")
+        with linha2[1]:
+            celular = st.text_input("Celular *", help="Formato: (00) 00000-0000", 
+                                  value=st.session_state.get("celular_pf", ""),
+                                  key="celular_pf")
         
         # Dados Complementares
-        st.subheader("Dados Complementares")
-        # Na seção "Dados Complementares" do formulário PF (tab1), adicione:
-        col1, col2 = st.columns(2)
-        with col1:
+        st.markdown("**Dados Complementares**")
+        
+        # Linha 4: Nacionalidade e Profissão
+        linha3 = st.columns(2)
+        with linha3[0]:
             nacionalidade = st.text_input("Nacionalidade", value="BRASILEIRA")
+        with linha3[1]:
             profissao = st.text_input("Profissão")
-        with col2:
-            email = st.text_input("E-mail")  # Adicione esta linha
+        
+        # Linha 5: E-mail
+        email = st.text_input("E-mail")
+        
+        # Linha 6: Estado Civil e Regime de Casamento
+        linha4 = st.columns(2)
+        with linha4[0]:
             estado_civil = st.selectbox("Estado Civil", 
                                      ["", "CASADO(A)", "SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"])
-            
-            # Regime de Casamento sempre visível
+        with linha4[1]:
             regime_casamento = st.selectbox("Regime de Casamento",
                 ["", "COMUNHÃO UNIVERSAL DE BENS", "SEPARAÇÃO DE BENS", 
                 "COMUNHÃO PARCIAL DE BENS", "COMUNHÃO DE BENS (REGIME ÚNICO ANTES DE 1977)"]
             )
-            
-        with col2:
-            # Checkbox de União Estável sempre visível
-            uniao_estavel = st.checkbox("União Estável")
-
         
-        # Endereço
+        # Linha 7: União Estável
+        uniao_estavel = st.checkbox("União Estável")
+
+        # Endereço (mantido como estava)
         st.subheader("Endereço")
         col1, col2 = st.columns(2)
         with col1:
@@ -774,49 +844,57 @@ with tab1:
             cidade = st.text_input("Cidade", key="cidade_pf")
             estado = st.text_input("Estado", key="estado_pf")
         
-        # Dados do 2° Proponente/Cônjuge
+        # Dados do 2° Proponente/Cônjuge (mantido como estava)
         st.subheader("Dados do 2° Proponente/Cônjuge")
         tem_conjuge = st.radio("Casado ou convivente com o 1° proponente?", 
                              ["SIM", "NÃO"], horizontal=True)
         
-        # Na seção "Dados do 2° Proponente/Cônjuge", ANTES do if tem_conjuge == "SIM":
-        nome_conjuge = cpf_conjuge = celular_conjuge = nacionalidade_conjuge = ""
-        profissao_conjuge = estado_civil_conjuge = regime_casamento_conjuge = ""
-        cep_conjuge = endereco_conjuge = numero_conjuge = bairro_conjuge = cidade_conjuge = estado_conjuge = ""
-        uniao_estavel_conjuge = False
-
         if tem_conjuge == "SIM":
-            col1, col2 = st.columns(2)
-            with col1:
+            # Seção do Cônjuge com layout compacto similar
+            genero_conjuge = st.radio("Gênero", ["MASCULINO", "FEMININO"], 
+                                    key="genero_conjuge_pf", horizontal=True)
+            
+            linha_conjuge1 = st.columns([2, 1])
+            with linha_conjuge1[0]:
                 nome_conjuge = st.text_input("Nome Completo")
+            with linha_conjuge1[1]:
+                data_nascimento_conjuge = st.date_input("Data de Nascimento", 
+                                                      value=None,
+                                                      format="DD/MM/YYYY",
+                                                      key="data_nascimento_conjuge_pf")
+            
+            linha_conjuge2 = st.columns(2)
+            with linha_conjuge2[0]:
                 cpf_conjuge = st.text_input("CPF", help="Formato: 000.000.000-00", 
                                           value=st.session_state.get("cpf_conjuge_pf", ""),
                                           key="cpf_conjuge_pf")
-            with col2:
+            with linha_conjuge2[1]:
                 celular_conjuge = st.text_input("Celular", help="Formato: (00) 00000-0000", 
                                               value=st.session_state.get("celular_conjuge_pf", ""),
                                               key="celular_conjuge_pf")
-                email_conjuge = st.text_input("E-mail do Cônjuge", key="email_conjuge_pf")
-                nacionalidade_conjuge = st.text_input("Nacionalidade", value="BRASILEIRA", key="nacionalidade_conjuge_pf")
             
-            col1, col2 = st.columns(2)
-            with col1:
-                profissao_conjuge = st.text_input("Profissão", key="profissao_conjuge_pf")  # Adicione esta linha
+            linha_conjuge3 = st.columns(2)
+            with linha_conjuge3[0]:
+                nacionalidade_conjuge = st.text_input("Nacionalidade", value="BRASILEIRA", key="nacionalidade_conjuge_pf")
+            with linha_conjuge3[1]:
+                profissao_conjuge = st.text_input("Profissão", key="profissao_conjuge_pf")
+            
+            email_conjuge = st.text_input("E-mail do Cônjuge", key="email_conjuge_pf")
+            
+            linha_conjuge4 = st.columns(2)
+            with linha_conjuge4[0]:
                 estado_civil_conjuge = st.selectbox("Estado Civil", 
                                                   ["", "CASADO(A)", "SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"],
                                                   key="estado_civil_conjuge_pf")
-                
-                # Regime de Casamento sempre visível
+            with linha_conjuge4[1]:
                 regime_casamento_conjuge = st.selectbox("Regime de Casamento", 
                                                       ["", "COMUNHÃO UNIVERSAL DE BENS", "SEPARAÇÃO DE BENS", 
                                                        "COMUNHÃO PARCIAL DE BENS", "COMUNHÃO DE BENS (REGIME ÚNICO ANTES DE 1977)"],
                                                       key="regime_casamento_conjuge_pf")
-                
-            with col2:
-                # Checkbox de União Estável sempre visível
-                uniao_estavel_conjuge = st.checkbox("União Estável", key="uniao_estavel_conjuge_pf")
+            
+            uniao_estavel_conjuge = st.checkbox("União Estável", key="uniao_estavel_conjuge_pf")
 
-                        
+            # Endereço do Cônjuge (mantido como estava)
             col1, col2 = st.columns(2)
             with col1:
                 cep_conjuge = st.text_input("CEP", help="Formato: 00000-000", 
@@ -833,13 +911,8 @@ with tab1:
                 bairro_conjuge = st.text_input("Bairro", key="bairro_conjuge_pf")
                 cidade_conjuge = st.text_input("Cidade", key="cidade_conjuge_pf")
                 estado_conjuge = st.text_input("Estado", key="estado_conjuge_pf")
-        else:
-            nome_conjuge = cpf_conjuge = celular_conjuge = nacionalidade_conjuge = ""
-            profissao_conjuge = estado_civil_conjuge = regime_casamento_conjuge = ""
-            cep_conjuge = endereco_conjuge = numero_conjuge = bairro_conjuge = cidade_conjuge = estado_conjuge = ""
-            uniao_estavel = uniao_estavel_conjuge = False
         
-        # Termo de consentimento
+        # Termo de consentimento e botões (mantidos como estavam)
         st.markdown("""
         **Para os fins da Lei 13.709/18, o titular concorda com:**  
         (i) o tratamento de seus dados pessoais e de seu cônjuge, quando for o caso, para os fins relacionados ao cumprimento das obrigações
@@ -867,8 +940,10 @@ with tab1:
             cpf_conjuge_formatado = formatar_cpf(st.session_state.get("cpf_conjuge_pf", ""))
             celular_conjuge_formatado = formatar_telefone(st.session_state.get("celular_conjuge_pf", ""))
             cep_conjuge_formatado = re.sub(r'[^0-9]', '', st.session_state.get("cep_conjuge_pf", ""))
+            data_nascimento_conjuge_formatada = data_nascimento_conjuge.strftime('%d/%m/%Y') if data_nascimento_conjuge else ""
         else:
-            cpf_conjuge_formatado = celular_conjuge_formatado = cep_conjuge_formatado = ""
+            cpf_conjuge_formatado = celular_conjuge_formatado = cep_conjuge_formatado = data_nascimento_conjuge_formatada = ""
+            genero_conjuge = ""
         
         if not nome or not cpf_formatado or not celular_formatado:
             st.error("Por favor, preencha os campos obrigatórios (*)")
@@ -881,7 +956,7 @@ with tab1:
                 'data_nascimento': data_nascimento_formatada,
                 'celular': celular_formatado,
                 'cpf': cpf_formatado,
-                'email': email,  # Adicione esta linha
+                'email': email,
                 'nacionalidade': nacionalidade,
                 'profissao': profissao,
                 'estado_civil': estado_civil,
@@ -894,8 +969,11 @@ with tab1:
                 'cidade': st.session_state.get("cidade_pf", ""),
                 'estado': st.session_state.get("estado_pf", ""),
                 'nome_conjuge': nome_conjuge if tem_conjuge == "SIM" else "",
+                'genero_conjuge': genero_conjuge if tem_conjuge == "SIM" else "",
+                'data_nascimento_conjuge': data_nascimento_conjuge_formatada if tem_conjuge == "SIM" else "",
                 'cpf_conjuge': cpf_conjuge_formatado if tem_conjuge == "SIM" else "",
                 'celular_conjuge': celular_conjuge_formatado if tem_conjuge == "SIM" else "",
+                'email_conjuge': email_conjuge if tem_conjuge == "SIM" else "",
                 'nacionalidade_conjuge': nacionalidade_conjuge if tem_conjuge == "SIM" else "",
                 'profissao_conjuge': profissao_conjuge if tem_conjuge == "SIM" else "",
                 'estado_civil_conjuge': estado_civil_conjuge if tem_conjuge == "SIM" else "",
@@ -931,7 +1009,7 @@ with tab1:
             'data_nascimento': data_nascimento.strftime('%d/%m/%Y') if data_nascimento else "",
             'celular': formatar_telefone(st.session_state.get("celular_pf", "")),
             'cpf': formatar_cpf(st.session_state.get("cpf_pf", "")),
-            'email': email,  # ADICIONADO
+            'email': email,
             'nacionalidade': nacionalidade,
             'profissao': profissao,
             'estado_civil': estado_civil,
@@ -952,9 +1030,11 @@ with tab1:
         if tem_conjuge == "SIM":
             dados_impressao.update({
                 'nome_conjuge': nome_conjuge,
+                'genero_conjuge': genero_conjuge,
+                'data_nascimento_conjuge': data_nascimento_conjuge.strftime('%d/%m/%Y') if data_nascimento_conjuge else "",
                 'cpf_conjuge': formatar_cpf(st.session_state.get("cpf_conjuge_pf", "")),
                 'celular_conjuge': formatar_telefone(st.session_state.get("celular_conjuge_pf", "")),
-                'email_conjuge': email_conjuge if tem_conjuge == "SIM" else "",  # ADICIONADO
+                'email_conjuge': email_conjuge,
                 'nacionalidade_conjuge': nacionalidade_conjuge,
                 'profissao_conjuge': profissao_conjuge,
                 'estado_civil_conjuge': estado_civil_conjuge,
@@ -1022,44 +1102,62 @@ with tab2:
             cidade_empresa = st.text_input("Cidade", key="cidade_empresa_pj")
             estado_empresa = st.text_input("Estado", key="estado_empresa_pj")
         
+
         # Dados do Administrador
         st.subheader("Dados do Administrador")
+
+        # Container principal com 2 colunas (como no print 2)
         col1, col2 = st.columns(2)
+
         with col1:
+            # Primeira coluna (esquerda)
             genero_administrador = st.radio("Gênero", ["MASCULINO", "FEMININO"], 
                                           key="genero_administrador_pj",
                                           horizontal=True)
+            
             nome_administrador = st.text_input("Nome Completo *", key="nome_administrador_pj")
-            data_nascimento_administrador = st.date_input("Data de Nascimento (dd/mm/aaaa)", 
-                                                         value=None,
-                                                         format="DD/MM/YYYY",
-                                                         key="data_nascimento_administrador_pj")
+            
+            data_nascimento_administrador = st.date_input("Data de Nascimento", 
+                                                        value=None,
+                                                        format="DD/MM/YYYY",
+                                                        key="data_nascimento_administrador_pj")
+            
+            st.markdown("**Dados Complementares**")
+            
+            # Sub-colunas para CPF e Celular
+            cpf_celular = st.columns(2)
+            with cpf_celular[0]:
+                cpf_administrador = st.text_input("CPF *", key="cpf_administrador_pj",
+                                                help="Formato: 000.000.000-00",
+                                                value=st.session_state.get("cpf_administrador_pj", ""))
+            with cpf_celular[1]:
+                celular_administrador = st.text_input("Celular *", key="celular_administrador_pj",
+                                                    help="Formato: (00) 00000-0000",
+                                                    value=st.session_state.get("celular_administrador_pj", ""))
+
         with col2:
-            cpf_administrador = st.text_input("CPF *", key="cpf_administrador_pj",
-                                            help="Formato: 000.000.000-00",
-                                            value=st.session_state.get("cpf_administrador_pj", ""))
-            celular_administrador = st.text_input("Celular *", key="celular_administrador_pj",
-                                                help="Formato: (00) 00000-0000",
-                                                value=st.session_state.get("celular_administrador_pj", ""))
-            email_administrador = st.text_input("E-mail do Administrador", key="email_administrador_pj")  # ADICIONADO                                    
-            nacionalidade_administrador = st.text_input("Nacionalidade", value="BRASILEIRA", key="nacionalidade_administrador_pj")
+            # Segunda coluna (direita)
+            nacionalidade_administrador = st.text_input("Nacionalidade", 
+                                                      value="BRASILEIRA", 
+                                                      key="nacionalidade_administrador_pj")
+            
             profissao_administrador = st.text_input("Profissão", key="profissao_administrador_pj")
-        
-        # Estado Civil e Regime de Casamento
-        col1, col2 = st.columns(2)
-        with col1:
-            estado_civil_administrador = st.selectbox("Estado Civil", 
-                                                    ["", "CASADO(A)", "SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"],
-                                                    key="estado_civil_administrador_pj")
             
-            # Regime de Casamento sempre visível
-            regime_casamento_administrador = st.selectbox("Regime de Casamento", 
-                                                        ["", "COMUNHÃO UNIVERSAL DE BENS", "SEPARAÇÃO DE BENS", 
-                                                         "COMUNHÃO PARCIAL DE BENS", "COMUNHÃO DE BENS (REGIME ÚNICO ANTES DE 1977)"],
-                                                        key="regime_casamento_administrador_pj")
+            email_administrador = st.text_input("E-mail", key="email_administrador_pj")
             
-        with col2:
-            # Checkbox de União Estável sempre visível
+            # Sub-colunas para Estado Civil e Regime
+            civil_regime = st.columns(2)
+            with civil_regime[0]:
+                estado_civil_administrador = st.selectbox("Estado Civil", 
+                                                        ["", "CASADO(A)", "SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"],
+                                                        key="estado_civil_administrador_pj")
+            with civil_regime[1]:
+                regime_casamento_administrador = st.selectbox("Regime de Casamento", 
+                                                            ["", "COMUNHÃO UNIVERSAL DE BENS", "SEPARAÇÃO DE BENS", 
+                                                             "COMUNHÃO PARCIAL DE BENS", "COMUNHÃO DE BENS (REGIME ÚNICO ANTES DE 1977)"],
+                                                            key="regime_casamento_administrador_pj")
+            
+            # União Estável alinhada à direita
             uniao_estavel_administrador = st.checkbox("União Estável", key="uniao_estavel_administrador_pj")
         
         # Endereço do Administrador
