@@ -351,15 +351,14 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('regime_casamento', ''), 0, 1)
         pdf.ln(5)
         
-        # Endereço (com espaço ajustado)
+        # Endereço
         pdf.set_font('Arial', 'B', 11)
-        pdf.cell(0, 7, 'ENDEREÇO', 0, 1)
+        pdf.cell(0, 7, 'ENDEREÇO ', 0, 1)
         pdf.set_font('Arial', '', 10)
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
         pdf.cell(25, 6, dados.get('cep', ''), 0, 0)
-        pdf.cell(10, 6, '', 0, 0)  # Espaço adicional
-        pdf.cell(25, 6, 'ENDEREÇO:   ', 0, 0)
+        pdf.cell(25, 6, 'ENDEREÇO:   ', '0', 0)
         pdf.cell(0, 6, dados.get('endereco', ''), 0, 1)
         
         pdf.cell(20, 6, 'NÚMERO:', 0, 0)
@@ -369,7 +368,6 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
         pdf.cell(50, 6, dados.get('cidade', ''), 0, 0)
-        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
         pdf.cell(25, 6, 'ESTADO:   ', 0, 0)
         pdf.cell(0, 6, dados.get('estado', ''), 0, 1)
         pdf.ln(5)
@@ -387,7 +385,7 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.cell(40, 6, dados.get('cpf_conjuge', ''), 0, 0)
             pdf.cell(25, 6, 'CELULAR:', 0, 0)
             pdf.cell(0, 6, dados.get('celular_conjuge', ''), 0, 1)
-            pdf.cell(20, 6, 'E-MAIL:', 0, 0)  # Linha adicionada para o e-mail do cônjuge
+            pdf.cell(20, 6, 'E-MAIL:', 0, 0)
             pdf.cell(0, 6, dados.get('email_conjuge', ''), 0, 1)
             
             pdf.cell(35, 6, 'NACIONALIDADE:', 0, 0)
@@ -406,15 +404,14 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.cell(0, 6, dados.get('regime_casamento_conjuge', ''), 0, 1)
             pdf.ln(5)
             
-            # Endereço do Cônjuge (com espaço ajustado)
+            # Endereço do Cônjuge
             pdf.set_font('Arial', 'B', 11)
-            pdf.cell(0, 7, 'ENDEREÇO DO CÔNJUGE', 0, 1)
+            pdf.cell(0, 7, 'ENDEREÇO DO CÔNJUGE ', 0, 1)
             pdf.set_font('Arial', '', 10)
             
             pdf.cell(15, 6, 'CEP:', 0, 0)
             pdf.cell(25, 6, dados.get('cep_conjuge', ''), 0, 0)
-            pdf.cell(10, 6, '', 0, 0)  # Espaço adicional
-            pdf.cell(25, 6, 'ENDEREÇO:   ', 0, 0)
+            pdf.cell(25, 6, 'ENDEREÇO:   ', '0', 0)
             pdf.cell(0, 6, dados.get('endereco_conjuge', ''), 0, 1)
             
             pdf.cell(20, 6, 'NÚMERO:', 0, 0)
@@ -424,34 +421,32 @@ def gerar_pdf_formatado(tipo, dados):
             
             pdf.cell(20, 6, 'CIDADE:', 0, 0)
             pdf.cell(50, 6, dados.get('cidade_conjuge', ''), 0, 0)
-            pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
             pdf.cell(25, 6, 'ESTADO:   ', 0, 0)
             pdf.cell(0, 6, dados.get('estado_conjuge', ''), 0, 1)
             pdf.ln(5)
         
-       
         # Termo de consentimento
         pdf.set_font('Arial', '', 8)
         pdf.multi_cell(0, 4, 'Para os fins da Lei 13.709/18, o titular concorda com: (i) o tratamento de seus dados pessoais e de seu cônjuge, quando for o caso, para os fins relacionados ao cumprimento das obrigações previstas na Lei, nesta ficha cadastral ou dela decorrente; e (ii) o envio de seus dados pessoais e da documentação respectiva a órgãos e entidades tais como a Secretaria da Fazenda Municipal, administração do condomínio, Cartórios, ao credor fiduciário, à companhia securitizadora e a outras pessoas, nos limites permitidos em Lei.')
-        
+          
+        # Data Justificada a esquerda abaixo
+        pdf.ln(2)
+        pdf.cell(0, 5, f"Uberlândia/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
+               
+        pdf.ln(5)  # Espaço adicional
+
         # Assinaturas
         pdf.ln(8)
         pdf.set_font('Arial', '', 10)
         col_width = pdf.w / 2 - 15
         
-        # 1° Proponente
-        pdf.cell(col_width, 6, 'ASSINATURA DO 1° PROPONENTE', 0, 0, 'C')
-        pdf.cell(col_width, 6, 'ASSINATURA DO 2° PROPONENTE', 0, 1, 'C')
-        
-        pdf.ln(10)  # Espaço adicional
-        
         # Linhas de assinatura
         pdf.cell(col_width, 6, '_______________________________', 0, 0, 'C')
         pdf.cell(col_width, 6, '_______________________________', 0, 1, 'C')
-        
-        # Data centralizada abaixo
-        pdf.ln(5)
-        pdf.cell(0, 5, f"UBERLÂNDIA/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'C')
+        # 1° Proponente
+        pdf.cell(col_width, 6, 'ASSINATURA DO 1° PROPONENTE', 0, 0, 'C')
+        pdf.cell(col_width, 6, 'ASSINATURA DO 2° PROPONENTE', 0, 1, 'C')
+
     
     else:
         # Formatação para Pessoa Jurídica (ajustada para ficar igual à PF)
@@ -496,8 +491,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
         pdf.cell(25, 6, dados.get('cep_empresa', ''), 0, 0)
-        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
-        pdf.cell(25, 6, 'ENDEREÇO:   ', 0, 0)  
+        pdf.cell(25, 6, 'ENDEREÇO:  ', 'B', 0)
         pdf.cell(0, 6, dados.get('endereco_empresa', ''), 0, 1)
         
         pdf.cell(20, 6, 'NÚMERO:', 0, 0)
@@ -507,8 +501,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
         pdf.cell(50, 6, dados.get('cidade_empresa', ''), 0, 0)
-        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
-        pdf.cell(25, 6, 'ENDEREÇO:   ', 0, 0)  
+        pdf.cell(25, 6, 'ESTADO:  ', 0, 0)
         pdf.cell(0, 6, dados.get('estado_empresa', ''), 0, 1)
         pdf.ln(5)
         
@@ -557,8 +550,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
         pdf.cell(25, 6, dados.get('cep_administrador', ''), 0, 0)
-        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
-        pdf.cell(25, 6, 'ENDEREÇO:   ', 0, 0)  
+        pdf.cell(25, 6, 'ENDEREÇO:  ', 'B', 0)
         pdf.cell(0, 6, dados.get('endereco_administrador', ''), 0, 1)
         
         pdf.cell(20, 6, 'NÚMERO:', 0, 0)
@@ -568,27 +560,29 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
         pdf.cell(50, 6, dados.get('cidade_administrador', ''), 0, 0)
-        pdf.cell(10, 6, '', 0, 0)  # Aumentei o espaço para 10mm
-        pdf.cell(25, 6, 'ESTADO:   ', 0, 0)
+        pdf.cell(25, 6, 'ESTADO:  ', 0, 0)
         pdf.cell(0, 6, dados.get('estado_administrador', ''), 0, 1)
         pdf.ln(5)
         
         # Termo de consentimento
         pdf.set_font('Arial', '', 8)
         pdf.multi_cell(0, 4, 'Para os fins da Lei 13.709/18, o titular concorda com: (i) o tratamento de seus dados pessoais e de seu cônjuge, quando for o caso, para os fins relacionados ao cumprimento das obrigações previstas na Lei, nesta ficha cadastral ou dela decorrente; e (ii) o envio de seus dados pessoais e da documentação respectiva a órgãos e entidades tais como a Secretaria da Fazenda Municipal, administração do condomínio, Cartórios, ao credor fiduciário, à companhia securitizadora e a outras pessoas, nos limites permitidos em Lei.')
-        
+    
+    
+        # Data centralizada abaixo
+        pdf.ln(5)
+        pdf.cell(0, 5, f"Uberlândia/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
+    
+    
         # Assinatura
         pdf.ln(8)
         pdf.set_font('Arial', '', 10)
         
         # Assinatura do Administrador
+        pdf.cell(0, 6, '_______________________________', 0, 1, 'C')
         pdf.cell(0, 6, 'ASSINATURA DO ADMINISTRADOR', 0, 1, 'C')
         pdf.ln(10)  # Espaço adicional
-        pdf.cell(0, 6, '_______________________________', 0, 1, 'C')
-        
-        # Data centralizada abaixo
-        pdf.ln(5)
-        pdf.cell(0, 5, f"UBERLÂNDIA/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'C')
+
     
     # Salva o PDF temporariamente
     temp_dir = tempfile.mkdtemp()
@@ -1217,42 +1211,124 @@ with tab3:
     
     if tipo_consulta == "Pessoa Física":
         df = st.session_state.clientes_pf.copy()
+        id_col = 'id'
+        nome_col = 'nome'
+        doc_col = 'cpf'
+        tabela = 'clientes_pf'
     else:
         df = st.session_state.clientes_pj.copy()
+        id_col = 'id'
+        nome_col = 'razao_social'
+        doc_col = 'cnpj'
+        tabela = 'clientes_pj'
     
     if not df.empty:
         # Filtros
         col1, col2 = st.columns(2)
         
         with col1:
-            filtro_nome = st.text_input("Filtrar por nome/razão social")
+            filtro_nome = st.text_input(f"Filtrar por {'nome' if tipo_consulta == 'Pessoa Física' else 'razão social'}")
         
         with col2:
-            if tipo_consulta == "Pessoa Física":
-                filtro_cpf = st.text_input("Filtrar por CPF")
-            else:
-                filtro_cnpj = st.text_input("Filtrar por CNPJ")
+            filtro_doc = st.text_input(f"Filtrar por {'CPF' if tipo_consulta == 'Pessoa Física' else 'CNPJ'}")
         
         # Aplicar filtros
         if filtro_nome:
-            if tipo_consulta == "Pessoa Física":
-                df = df[df['nome'].str.contains(filtro_nome, case=False, na=False)]
-            else:
-                df = df[df['razao_social'].str.contains(filtro_nome, case=False, na=False)]
+            df = df[df[nome_col].str.contains(filtro_nome, case=False, na=False)]
         
-        if tipo_consulta == "Pessoa Física" and filtro_cpf:
-            df = df[df['cpf'].str.contains(filtro_cpf, case=False, na=False)]
-        elif tipo_consulta == "Pessoa Jurídica" and filtro_cnpj:
-            df = df[df['cnpj'].str.contains(filtro_cnpj, case=False, na=False)]
+        if filtro_doc:
+            df = df[df[doc_col].str.contains(filtro_doc, case=False, na=False)]
         
-        # Formatar datas antes de exibir
+        # Formatar dados para exibição
         df_formatado = df.copy()
         for col in df_formatado.columns:
             if 'data' in col.lower():
-                df_formatado[col] = df_formatado[col].apply(formatar_data_ptbr)
+                df_formatado[col] = df_formatado[col].apply(lambda x: formatar_data_ptbr(x) if pd.notna(x) else '')
+            if doc_col in col or 'cpf' in col.lower() or 'cnpj' in col.lower():
+                if tipo_consulta == "Pessoa Física":
+                    df_formatado[col] = df_formatado[col].apply(lambda x: formatar_cpf(x) if pd.notna(x) else '')
+                else:
+                    df_formatado[col] = df_formatado[col].apply(lambda x: formatar_cnpj(x) if pd.notna(x) else '')
+            if 'celular' in col.lower() or 'telefone' in col.lower():
+                df_formatado[col] = df_formatado[col].apply(lambda x: formatar_telefone(x) if pd.notna(x) else '')
         
-        # Mostrar tabela
+        # Mostrar tabela com opção de seleção
         st.dataframe(df_formatado)
+        
+        # Selecionar registro para reimpressão
+        if not df_formatado.empty:
+            registros = df_formatado[[id_col, nome_col, doc_col]].to_dict('records')
+            opcoes = {f"{r[id_col]} - {r[nome_col]} - {r[doc_col]}": r[id_col] for r in registros}
+            
+            selected = st.selectbox("Selecione um registro para reimprimir:", options=list(opcoes.keys()))
+            
+            if st.button("Reimprimir Ficha Selecionada"):
+                registro_id = opcoes[selected]
+                
+                # Buscar dados completos no banco
+                conn = sqlite3.connect(DB_NAME)
+                cursor = conn.cursor()
+                cursor.execute(f"SELECT * FROM {tabela} WHERE id = ?", (registro_id,))
+                dados = cursor.fetchone()
+                conn.close()
+                
+                if dados:
+                    # Converter para dicionário com nomes de colunas
+                    cols = [column[0] for column in cursor.description]
+                    dados_dict = dict(zip(cols, dados))
+                    
+                    # Aplicar formatação para garantir que seja igual ao PDF original
+                    dados_formatados = {}
+                    for key, value in dados_dict.items():
+                        if value is None:
+                            value = ''
+                        
+                        # Formatar datas
+                        if 'data' in key.lower() and value:
+                            try:
+                                if re.match(r'\d{2}/\d{2}/\d{4}', str(value)):
+                                    dados_formatados[key] = value
+                                else:
+                                    dados_formatados[key] = datetime.strptime(value, '%Y-%m-%d').strftime('%d/%m/%Y')
+                            except:
+                                dados_formatados[key] = value
+                        
+                        # Formatar CPF/CNPJ
+                        elif ('cpf' in key.lower() or 'cnpj' in key.lower()) and value:
+                            if 'cpf' in key.lower():
+                                dados_formatados[key] = formatar_cpf(value)
+                            else:
+                                dados_formatados[key] = formatar_cnpj(value)
+                        
+                        # Formatar telefones
+                        elif ('celular' in key.lower() or 'telefone' in key.lower()) and value:
+                            dados_formatados[key] = formatar_telefone(value)
+                        
+                        # Manter outros valores como estão
+                        else:
+                            dados_formatados[key] = value
+                    
+                    # Garantir que campos booleanos estejam corretos
+                    if tipo_consulta == "Pessoa Física":
+                        for campo in ['uniao_estavel', 'uniao_estavel_conjuge']:
+                            if campo in dados_formatados:
+                                dados_formatados[campo] = 'SIM' if dados_formatados[campo] == 'SIM' else 'NÃO'
+                    else:
+                        if 'uniao_estavel_administrador' in dados_formatados:
+                            dados_formatados['uniao_estavel_administrador'] = 'SIM' if dados_formatados['uniao_estavel_administrador'] == 'SIM' else 'NÃO'
+                    
+                    # Gerar PDF
+                    pdf_path = gerar_pdf_formatado('pf' if tipo_consulta == "Pessoa Física" else 'pj', dados_formatados)
+                    
+                    # Botão de download
+                    with open(pdf_path, "rb") as f:
+                        nome_arquivo = f"ficha_{'pf' if tipo_consulta == 'Pessoa Física' else 'pj'}_reimpressao_{dados_formatados.get(nome_col, 'sem_nome')}.pdf"
+                        st.download_button(
+                            "Baixar Ficha em PDF",
+                            f,
+                            file_name=nome_arquivo,
+                            mime="application/pdf"
+                        )
         
         # Opção para exportar dados
         if st.button("Exportar Dados para Excel"):
