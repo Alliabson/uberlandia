@@ -38,7 +38,7 @@ def login():
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("🔒 Login no Sistema")
+    st.title("🔒 Login ")
     
     usuario_correto = "hamoa"
     senha_correta = "hamoauberlandia"
