@@ -11,7 +11,13 @@ import os
 from fpdf import FPDF
 import time
 
-
+# Pré-carregar a logo (opcional)
+LOGO_PATH = 'Logo_pdf.png'
+LOGO_CACHE = None
+try:
+    LOGO_CACHE = open(LOGO_PATH, 'rb').read()
+except Exception as e:
+    st.warning(f"Não foi possível carregar a logo: {e}")
 
 
 def login():
@@ -322,15 +328,26 @@ def preencher_endereco(tipo: str) -> None:
                     st.rerun()
             except Exception as e:
                 st.warning(f"Erro ao buscar CEP: {str(e)}")
-
+@st.cache_data
 def gerar_pdf_formatado(tipo, dados):
     """Gera um PDF formatado similar às fichas originais com margens corretas"""
     pdf = FPDF('P', 'mm', 'A4')
     pdf.add_page()
     
-    # Configurações de layout
+# Configurações de layout
     pdf.set_margins(20, 15, 20)  # Margens: esquerda, topo, direita
     pdf.set_auto_page_break(True, margin=15)  # Margem inferior
+    
+    # Adicionar logo (otimizado para performance)
+    try:
+        # Reduzindo a qualidade da imagem para melhor performance
+        # Posicionando no topo direito (ajuste as coordenadas conforme necessário)
+        pdf.image('Logo_pdf.png', x=160, y=10, w=30, h=15, type='PNG', link='')
+        # Você pode ajustar:
+        # - x, y: posição (160mm da esquerda, 10mm do topo)
+        # - w, h: tamanho (30mm largura, 15mm altura)
+    except Exception as e:
+        st.warning(f"Não foi possível carregar a logo: {e}")
     
     # Configuração de fonte
     try:
