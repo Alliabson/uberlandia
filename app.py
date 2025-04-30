@@ -409,10 +409,19 @@ def gerar_pdf_formatado(tipo, dados):
         # Estado Civil com condicional para união estável
         estado_civil = dados.get('estado_civil', '')
         if estado_civil in ["SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"] and dados.get('uniao_estavel', '') == "SIM":
-            estado_civil += "\n(União Estável)"
+            estado_civil += " (União Estável)"
             
+        #linha substituida    
         pdf.cell(30, 6, 'ESTADO CIVIL:', 0, 0)
-        pdf.cell(40, 6, estado_civil, 0, 0)
+
+        # Posição inicial para controlar alinhamento
+        x_estado, y_estado = pdf.get_x(), pdf.get_y()
+
+        # Multiline do estado civil (sempre usar multi_cell para uniformidade visual)
+        pdf.multi_cell(0, 5, estado_civil)
+
+        # Posicionar o cursor na linha seguinte após o multi_cell
+        pdf.set_xy(x_estado, pdf.get_y())
         pdf.cell(45, 6, 'REGIME CASAMENTO:', 0, 0)
         pdf.cell(0, 6, dados.get('regime_casamento', ''), 0, 1)
         pdf.ln(5)
@@ -468,10 +477,20 @@ def gerar_pdf_formatado(tipo, dados):
             # Estado Civil do cônjuge com condicional para união estável
             estado_civil_conjuge = dados.get('estado_civil_conjuge', '')
             if estado_civil_conjuge in ["SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"] and dados.get('uniao_estavel_conjuge', '') == "SIM":
-                estado_civil_conjuge += "\n(União Estável)"
+                estado_civil_conjuge += " (União Estável)"
                 
+
+            #linha substituida    
             pdf.cell(30, 6, 'ESTADO CIVIL:', 0, 0)
-            pdf.cell(40, 6, estado_civil_conjuge, 0, 0)
+
+            # Posição inicial para controlar alinhamento
+            x_estado, y_estado = pdf.get_x(), pdf.get_y()
+
+            # Multiline do estado civil (sempre usar multi_cell para uniformidade visual)
+            pdf.multi_cell(0, 5, estado_civil)
+
+            # Posicionar o cursor na linha seguinte após o multi_cell
+            pdf.set_xy(x_estado, pdf.get_y())
             pdf.cell(45, 6, 'REGIME CASAMENTO:', 0, 0)
             pdf.cell(0, 6, dados.get('regime_casamento_conjuge', ''), 0, 1)
             pdf.ln(5)
@@ -607,10 +626,18 @@ def gerar_pdf_formatado(tipo, dados):
         # Estado Civil com condicional para união estável
         estado_civil = dados.get('estado_civil_administrador', '')
         if estado_civil in ["SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"] and dados.get('uniao_estavel_administrador', '') == "SIM":
-            estado_civil += "\n(União Estável)"
+            estado_civil += " (União Estável)"
             
         pdf.cell(30, 6, 'ESTADO CIVIL:', 0, 0)
-        pdf.cell(40, 6, estado_civil, 0, 0)
+
+        # Posição inicial para controlar alinhamento
+        x_estado, y_estado = pdf.get_x(), pdf.get_y()
+
+        # Multiline do estado civil (sempre usar multi_cell para uniformidade visual)
+        pdf.multi_cell(0, 5, estado_civil)
+
+        # Posicionar o cursor na linha seguinte após o multi_cell
+        pdf.set_xy(x_estado, pdf.get_y())
         pdf.cell(45, 6, 'REGIME CASAMENTO:', 0, 0)
         pdf.cell(0, 6, dados.get('regime_casamento_administrador', ''), 0, 1)
         pdf.ln(5)
