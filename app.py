@@ -409,7 +409,7 @@ def gerar_pdf_formatado(tipo, dados):
         # Estado Civil com condicional para união estável
         estado_civil = dados.get('estado_civil', '')
         if estado_civil in ["SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"] and dados.get('uniao_estavel', '') == "SIM":
-            estado_civil += " (União Estável)"
+            estado_civil += "\n(União Estável)"
             
         pdf.cell(30, 6, 'ESTADO CIVIL:', 0, 0)
         pdf.cell(40, 6, estado_civil, 0, 0)
@@ -468,7 +468,7 @@ def gerar_pdf_formatado(tipo, dados):
             # Estado Civil do cônjuge com condicional para união estável
             estado_civil_conjuge = dados.get('estado_civil_conjuge', '')
             if estado_civil_conjuge in ["SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"] and dados.get('uniao_estavel_conjuge', '') == "SIM":
-                estado_civil_conjuge += " (União Estável)"
+                estado_civil_conjuge += "\n(União Estável)"
                 
             pdf.cell(30, 6, 'ESTADO CIVIL:', 0, 0)
             pdf.cell(40, 6, estado_civil_conjuge, 0, 0)
@@ -607,7 +607,7 @@ def gerar_pdf_formatado(tipo, dados):
         # Estado Civil com condicional para união estável
         estado_civil = dados.get('estado_civil_administrador', '')
         if estado_civil in ["SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"] and dados.get('uniao_estavel_administrador', '') == "SIM":
-            estado_civil += " (União Estável)"
+            estado_civil += "\n(União Estável)"
             
         pdf.cell(30, 6, 'ESTADO CIVIL:', 0, 0)
         pdf.cell(40, 6, estado_civil, 0, 0)
