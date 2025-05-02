@@ -20,6 +20,9 @@ try:
 except Exception as e:
     st.warning(f"Não foi possível carregar a logo: {e}")
 
+# SEMPRE iniciar o app com layout="wide" (não usar centered no começo!)
+st.set_page_config(page_title="Sistema Imobiliário - Fichas Cadastrais", layout="wide")
+
 # Configuração do banco de dados
 DB_NAME = "celeste.db"
 
