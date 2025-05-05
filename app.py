@@ -11,6 +11,13 @@ import os
 from fpdf import FPDF
 import time
 import hashlib
+import smtplib
+import random
+import ssl
+from email.message import EmailMessage
+
+# Adicione esta linha no início do seu arquivo, antes de qualquer conteúdo
+st.set_page_config(layout="wide")
 
 # Pré-carregar a logo (opcional)
 LOGO_PATH = 'Logo_pdf.png'
@@ -20,15 +27,42 @@ try:
 except Exception as e:
     st.warning(f"Não foi possível carregar a logo: {e}")
 
-# SEMPRE iniciar o app com layout="wide" (não usar centered no começo!)
-st.set_page_config(page_title="Sistema Imobiliário - Fichas Cadastrais", layout="wide")
-
 # Configuração do banco de dados
 DB_NAME = "celeste.db"
+
+# Configurações de e-mail
+EMAIL_REMETENTE = "alli@imobiliariaceleste.com.br"
+SENHA_APP = "jzix jalk dnkx wreq"
 
 # Função para criar hash de senha
 def criar_hash(senha):
     return hashlib.sha256(senha.encode()).hexdigest()
+
+# Funções de e-mail
+def gerar_codigo_autenticacao():
+    return str(random.randint(100000, 999999))
+
+def enviar_email(destinatario, codigo):
+    assunto = "Código de autenticação - Redefinição de senha"
+    corpo = f"Seu código de autenticação é: {codigo}\n\nUse este código para redefinir sua senha."
+
+    msg = EmailMessage()
+    msg['Subject'] = assunto
+    msg['From'] = EMAIL_REMETENTE
+    msg['To'] = destinatario
+    msg.set_content(corpo)
+
+    contexto = ssl.create_default_context()
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=contexto) as smtp:
+            smtp.login(EMAIL_REMETENTE, SENHA_APP)
+            smtp.send_message(msg)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao enviar e-mail: {e}")
+        return False
+
 
 # Função para criar tabelas do banco de dados
 def criar_tabelas():
@@ -149,7 +183,7 @@ def verificar_login(username, senha):
     cursor = conn.cursor()
     
     cursor.execute('''
-    SELECT id, username, senha_hash, nome_completo, is_admin 
+    SELECT id, username, senha_hash, nome_completo, is_admin, email 
     FROM usuarios 
     WHERE username = ?
     ''', (username,))
@@ -164,7 +198,8 @@ def verificar_login(username, senha):
                 'id': usuario[0],
                 'username': usuario[1],
                 'nome_completo': usuario[3],
-                'is_admin': usuario[4]
+                'is_admin': usuario[4],
+                'email': usuario[5]
             }
     return None
 
@@ -210,21 +245,24 @@ def gerar_token_recuperacao(username):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    cursor.execute('SELECT email, telefone FROM usuarios WHERE username = ?', (username,))
+    cursor.execute('SELECT email FROM usuarios WHERE username = ?', (username,))
     usuario = cursor.fetchone()
     
     if not usuario:
         return None
     
-    token = hashlib.sha256(f"{username}{datetime.now()}{os.urandom(16)}".encode()).hexdigest()
-    validade = (datetime.now() + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
+    token = gerar_codigo_autenticacao()
+    validade = (datetime.now() + timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
     
     cursor.execute('UPDATE usuarios SET token_recuperacao = ?, token_validade = ? WHERE username = ?',
                   (token, validade, username))
     conn.commit()
     conn.close()
     
-    return token, usuario[0]
+    # Enviar e-mail com o token
+    if enviar_email(usuario[0], token):
+        return token, usuario[0]
+    return None
 
 def validar_token(username, token):
     conn = sqlite3.connect(DB_NAME)
@@ -404,12 +442,11 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(30, 6, 'Nº NEGÓCIO:', 0, 0)
         pdf.cell(0, 6, dados.get('numero_negocio', ''), 0, 1)
         pdf.ln(5)
-        
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'DADOS DO CLIENTE', 0, 1)
         pdf.set_font('Arial', '', 10)
         
-        pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR:', 0, 0)
+        pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR: ', 0, 0)
         pdf.cell(0, 6, dados.get('nome', ''), 0, 1)
         
         pdf.cell(25, 6, 'GÊNERO:', 0, 0)
@@ -437,7 +474,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(45, 6, 'REGIME CASAMENTO:', 0, 0)
         pdf.cell(0, 6, dados.get('regime_casamento', ''), 0, 1)
-        pdf.ln(5)
+        pdf.ln(2)
         
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'ENDEREÇO ', 0, 1)
@@ -457,14 +494,14 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(50, 6, dados.get('cidade', ''), 0, 0)
         pdf.cell(25, 6, 'ESTADO:   ', 0, 0)
         pdf.cell(0, 6, dados.get('estado', ''), 0, 1)
-        pdf.ln(5)
+        pdf.ln(2)
         
         if dados.get('nome_conjuge', ''):
             pdf.set_font('Arial', 'B', 11)
-            pdf.cell(0, 7, 'DADOS DO CÔNJUGE', 0, 1)
+            pdf.cell(0, 7, 'DADOS DO CÔNJUGE/ 2º PROPONENTE', 0, 1)
             pdf.set_font('Arial', '', 10)
             
-            pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR:', 0, 0)
+            pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR: ', 0, 0)
             pdf.cell(0, 6, dados.get('nome_conjuge', ''), 0, 1)
             
             pdf.cell(25, 6, 'GÊNERO:', 0, 0)
@@ -492,7 +529,7 @@ def gerar_pdf_formatado(tipo, dados):
             
             pdf.cell(45, 6, 'REGIME CASAMENTO:', 0, 0)
             pdf.cell(0, 6, dados.get('regime_casamento_conjuge', ''), 0, 1)
-            pdf.ln(5)
+            pdf.ln(2)
             
             pdf.set_font('Arial', 'B', 11)
             pdf.cell(0, 7, 'ENDEREÇO DO CÔNJUGE ', 0, 1)
@@ -512,15 +549,15 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.cell(50, 6, dados.get('cidade_conjuge', ''), 0, 0)
             pdf.cell(25, 6, 'ESTADO:   ', 0, 0)
             pdf.cell(0, 6, dados.get('estado_conjuge', ''), 0, 1)
-            pdf.ln(5)
+            pdf.ln(2)
         
         pdf.set_font('Arial', '', 8)
         pdf.multi_cell(0, 4, 'Para os fins da Lei 13.709/18, o titular concorda com: (i) o tratamento de seus dados pessoais e de seu cônjuge, quando for o caso, para os fins relacionados ao cumprimento das obrigações previstas na Lei, nesta ficha cadastral ou dela decorrente; e (ii) o envio de seus dados pessoais e da documentação respectiva a órgãos e entidades tais como a Secretaria da Fazenda Municipal, administração do condomínio, Cartórios, ao credor fiduciário, à companhia securitizadora e a outras pessoas, nos limites permitidos em Lei.')
           
         pdf.ln(2)
-        pdf.cell(0, 5, f"Uberlândia/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
+        pdf.cell(0, 5, f"UBERLÂNDIA/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
                
-        pdf.ln(5)
+        pdf.ln(2)
 
         pdf.ln(8)
         pdf.set_font('Arial', '', 10)
@@ -543,13 +580,13 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('imobiliaria', ''), 0, 1)
         pdf.cell(30, 6, 'Nº NEGÓCIO:', 0, 0)
         pdf.cell(0, 6, dados.get('numero_negocio', ''), 0, 1)
-        pdf.ln(5)
+        pdf.ln(2)
         
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'DADOS DA EMPRESA', 0, 1)
         pdf.set_font('Arial', '', 10)
         
-        pdf.cell(60, 6, 'RAZÃO SOCIAL:', 0, 0)
+        pdf.cell(60, 6, 'RAZÃO SOCIAL: ', 0, 0)
         pdf.cell(0, 6, dados.get('razao_social', ''), 0, 1)
         
         pdf.cell(20, 6, 'CNPJ:', 0, 0)
@@ -559,7 +596,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(20, 6, 'E-MAIL:', 0, 0)
         pdf.cell(0, 6, dados.get('email', ''), 0, 1)
-        pdf.ln(5)
+        pdf.ln(2)
         
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'ENDEREÇO DA EMPRESA', 0, 1)
@@ -579,13 +616,13 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(50, 6, dados.get('cidade_empresa', ''), 0, 0)
         pdf.cell(25, 6, 'ESTADO:  ', 0, 0)
         pdf.cell(0, 6, dados.get('estado_empresa', ''), 0, 1)
-        pdf.ln(5)
+        pdf.ln(2)
         
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'DADOS DO ADMINISTRADOR', 0, 1)
         pdf.set_font('Arial', '', 10)
         
-        pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR:', 0, 0)
+        pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR: ', 0, 0)
         pdf.cell(0, 6, dados.get('nome_administrador', ''), 0, 1)
         
         pdf.cell(25, 6, 'GÊNERO:', 0, 0)
@@ -613,7 +650,7 @@ def gerar_pdf_formatado(tipo, dados):
         
         pdf.cell(45, 6, 'REGIME CASAMENTO:', 0, 0)
         pdf.cell(0, 6, dados.get('regime_casamento_administrador', ''), 0, 1)
-        pdf.ln(5)
+        pdf.ln(2)
         
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'ENDEREÇO DO ADMINISTRADOR', 0, 1)
@@ -633,13 +670,13 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(50, 6, dados.get('cidade_administrador', ''), 0, 0)
         pdf.cell(25, 6, 'ESTADO:  ', 0, 0)
         pdf.cell(0, 6, dados.get('estado_administrador', ''), 0, 1)
-        pdf.ln(5)
+        pdf.ln(2)
         
         pdf.set_font('Arial', '', 8)
         pdf.multi_cell(0, 4, 'Para os fins da Lei 13.709/18, o titular concorda com: (i) o tratamento de seus dados pessoais e de seu cônjuge, quando for o caso, para os fins relacionados ao cumprimento das obrigações previstas na Lei, nesta ficha cadastral ou dela decorrente; e (ii) o envio de seus dados pessoais e da documentação respectiva a órgãos e entidades tais como a Secretaria da Fazenda Municipal, administração do condomínio, Cartórios, ao credor fiduciário, à companhia securitizadora e a outras pessoas, nos limites permitidos em Lei.')
     
-        pdf.ln(5)
-        pdf.cell(0, 5, f"Uberlândia/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
+        pdf.ln(2)
+        pdf.cell(0, 5, f"UBERLÂNDIA/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
     
         pdf.ln(8)
         pdf.set_font('Arial', '', 10)
@@ -799,42 +836,69 @@ def excluir_cliente_pj(cliente_id):
     conn.commit()
     conn.close()
 
-# Tela de login/cadastro
+# Tela de login unificada
 def login_page():
+    # Força o layout padrão (não-wide) apenas para a tela de login
+    st.markdown(
+        """
+        <style>
+            .main > div {
+                max-width: 500px;
+                padding-top: 2rem;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
     st.title("🔒 Login - Sistema Imobiliário")
     
-    tab_login, tab_cadastro, tab_recuperar = st.tabs(["Login", "Cadastrar Usuário", "Recuperar Senha"])
-    
-    with tab_login:
+    # Container principal para o formulário de login
+    with st.container():
         with st.form(key="form_login"):
+            st.markdown("<h3 style='text-align: center;'>Acesse sua conta</h3>", unsafe_allow_html=True)
+            
             username = st.text_input("Usuário")
             senha = st.text_input("Senha", type="password")
             
-            if st.form_submit_button("Entrar"):
-                usuario = verificar_login(username, senha)
-                if usuario:
-                    st.session_state['usuario'] = usuario
-                    st.session_state['logado'] = True
-                    st.success("Login realizado com sucesso!")
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.error("Usuário ou senha incorretos")
+            # Botão centralizado
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.form_submit_button("Entrar", use_container_width=True):
+                    usuario = verificar_login(username, senha)
+                    if usuario:
+                        st.session_state['usuario'] = usuario
+                        st.session_state['logado'] = True
+                        st.success("Login realizado com sucesso!")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Usuário ou senha incorretos")
     
-    with tab_cadastro:
-        with st.form(key="form_cadastro"):
-            st.subheader("Cadastro de Usuário")
-            
-            novo_username = st.text_input("Nome de usuário *")
-            nova_senha = st.text_input("Senha *", type="password")
-            confirmar_senha = st.text_input("Confirmar senha *", type="password")
-            nome_completo = st.text_input("Nome completo *")
-            cpf = st.text_input("CPF *", help="Formato: 000.000.000-00")
-            email = st.text_input("E-mail *")
-            telefone = st.text_input("Telefone *", help="Formato: (00) 00000-0000")
-            imobiliaria = st.text_input("Imobiliária *")
-            
-            if st.form_submit_button("Cadastrar"):
+    # Links abaixo do botão de login
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Cadastrar Usuário", use_container_width=True):
+            st.session_state['mostrar_cadastro'] = True
+    with col2:
+        if st.button("Recuperar Senha", use_container_width=True):
+            st.session_state['mostrar_recuperacao'] = True
+    
+    # Formulário de cadastro (aparece apenas quando solicitado)
+    if st.session_state.get('mostrar_cadastro', False):
+        st.subheader("Cadastro de Usuário")
+        novo_username = st.text_input("Nome de usuário *", key="novo_username")
+        nova_senha = st.text_input("Senha *", type="password", key="nova_senha")
+        confirmar_senha = st.text_input("Confirmar senha *", type="password", key="confirmar_senha")
+        nome_completo = st.text_input("Nome completo *", key="nome_completo")
+        cpf = st.text_input("CPF *", help="Formato: 000.000.000-00", key="cpf")
+        email = st.text_input("E-mail *", key="email")
+        telefone = st.text_input("Telefone *", help="Formato: (00) 00000-0000", key="telefone")
+        imobiliaria = st.text_input("Imobiliária *", key="imobiliaria")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Cadastrar", use_container_width=True):
                 if nova_senha != confirmar_senha:
                     st.error("As senhas não coincidem")
                 elif not novo_username or not nova_senha or not nome_completo or not cpf or not email or not telefone or not imobiliaria:
@@ -847,35 +911,45 @@ def login_page():
                                              imobiliaria)
                     if sucesso:
                         st.success("Usuário cadastrado com sucesso!")
+                        st.session_state['mostrar_cadastro'] = False
                     else:
                         st.error("Nome de usuário já existe")
+        with col2:
+            if st.button("Cancelar", use_container_width=True):
+                st.session_state['mostrar_cadastro'] = False
     
-    with tab_recuperar:
-        with st.form(key="form_recuperar"):
-            st.subheader("Recuperação de Senha")
-            
-            username_rec = st.text_input("Nome de usuário")
-            
-            if st.form_submit_button("Enviar Link de Recuperação"):
-                if not username_rec:
-                    st.error("Informe o nome de usuário")
-                else:
-                    resultado = gerar_token_recuperacao(username_rec)
-                    if resultado:
-                        token, email = resultado
-                        st.session_state['token_recuperacao'] = token
-                        st.session_state['username_rec'] = username_rec
-                        st.success(f"Um link de recuperação foi enviado para {email}")
-                    else:
-                        st.error("Usuário não encontrado")
+    # Formulário de recuperação de senha (aparece apenas quando solicitado)
+    if st.session_state.get('mostrar_recuperacao', False):
+        st.subheader("Recuperação de Senha")
         
-        if 'token_recuperacao' in st.session_state:
-            with st.form(key="form_nova_senha"):
-                token_digitado = st.text_input("Código de Verificação")
-                nova_senha_rec = st.text_input("Nova Senha", type="password")
-                confirmar_senha_rec = st.text_input("Confirmar Nova Senha", type="password")
-                
-                if st.form_submit_button("Alterar Senha"):
+        if 'token_enviado' not in st.session_state:
+            username_rec = st.text_input("Nome de usuário", key="username_rec")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Enviar Código", use_container_width=True):
+                    if not username_rec:
+                        st.error("Informe o nome de usuário")
+                    else:
+                        resultado = gerar_token_recuperacao(username_rec)
+                        if resultado:
+                            st.session_state['username_rec'] = username_rec
+                            st.session_state['token_enviado'] = True
+                            st.success("Um código de recuperação foi enviado para o e-mail cadastrado")
+                        else:
+                            st.error("Usuário não encontrado ou erro ao enviar e-mail")
+            with col2:
+                if st.button("Cancelar", use_container_width=True):
+                    st.session_state['mostrar_recuperacao'] = False
+        
+        if 'token_enviado' in st.session_state:
+            token_digitado = st.text_input("Código de Verificação (6 dígitos)", key="token_recuperacao")
+            nova_senha_rec = st.text_input("Nova Senha", type="password", key="nova_senha_rec")
+            confirmar_senha_rec = st.text_input("Confirmar Nova Senha", type="password", key="confirmar_senha_rec")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Alterar Senha", use_container_width=True):
                     if not validar_token(st.session_state['username_rec'], token_digitado):
                         st.error("Código inválido ou expirado")
                     elif nova_senha_rec != confirmar_senha_rec:
@@ -883,11 +957,16 @@ def login_page():
                     else:
                         alterar_senha(st.session_state['username_rec'], nova_senha_rec)
                         st.success("Senha alterada com sucesso!")
-                        del st.session_state['token_recuperacao']
+                        del st.session_state['mostrar_recuperacao']
+                        del st.session_state['token_enviado']
                         del st.session_state['username_rec']
                         time.sleep(2)
                         st.rerun()
-
+            with col2:
+                if st.button("Cancelar", use_container_width=True):
+                    del st.session_state['mostrar_recuperacao']
+                    del st.session_state['token_enviado']
+                    del st.session_state['username_rec']
 
 # Verificação de login - Fluxo principal
 if 'logado' not in st.session_state or not st.session_state['logado']:
