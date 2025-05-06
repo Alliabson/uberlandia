@@ -15,8 +15,9 @@ import smtplib
 import random
 import ssl
 from email.message import EmailMessage
+import json
 
-# Adicione esta linha no início do seu arquivo, antes de qualquer conteúdo
+# Configuração inicial
 st.set_page_config(layout="wide")
 
 # Pré-carregar a logo (opcional)
@@ -62,7 +63,6 @@ def enviar_email(destinatario, codigo):
     except Exception as e:
         st.error(f"Erro ao enviar e-mail: {e}")
         return False
-
 
 # Função para criar tabelas do banco de dados
 def criar_tabelas():
@@ -171,11 +171,78 @@ def criar_tabelas():
     )
     ''')
     
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS pessoas_vinculadas_pj (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        empresa_id INTEGER NOT NULL,
+        dados_pessoa TEXT NOT NULL,  -- JSON com todos os dados da pessoa
+        FOREIGN KEY(empresa_id) REFERENCES clientes_pj(id)
+    )
+    ''')
+    
     conn.commit()
     conn.close()
 
 # Criar tabelas se não existirem
 criar_tabelas()
+
+# Funções para pessoas vinculadas PJ
+def adicionar_pessoa_vinculada(empresa_id, dados_pessoa):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    dados_json = json.dumps(dados_pessoa, ensure_ascii=False)
+    cursor.execute('''
+    INSERT INTO pessoas_vinculadas_pj (empresa_id, dados_pessoa)
+    VALUES (?, ?)
+    ''', (empresa_id, dados_json))
+    
+    conn.commit()
+    conn.close()
+
+def obter_pessoas_vinculadas(empresa_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    SELECT id, dados_pessoa FROM pessoas_vinculadas_pj
+    WHERE empresa_id = ?
+    ''', (empresa_id,))
+    
+    pessoas = []
+    for row in cursor.fetchall():
+        pessoa = json.loads(row[1])
+        pessoa['id'] = row[0]  # Adiciona o ID do registro
+        pessoas.append(pessoa)
+    
+    conn.close()
+    return pessoas
+
+def remover_pessoa_vinculada(pessoa_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    DELETE FROM pessoas_vinculadas_pj
+    WHERE id = ?
+    ''', (pessoa_id,))
+    
+    conn.commit()
+    conn.close()
+
+def atualizar_pessoa_vinculada(pessoa_id, dados_pessoa):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    dados_json = json.dumps(dados_pessoa, ensure_ascii=False)
+    cursor.execute('''
+    UPDATE pessoas_vinculadas_pj
+    SET dados_pessoa = ?
+    WHERE id = ?
+    ''', (dados_json, pessoa_id))
+    
+    conn.commit()
+    conn.close()
 
 # Funções de autenticação
 def verificar_login(username, senha):
@@ -567,12 +634,12 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(col_width, 6, '_______________________________', 0, 1, 'C')
         pdf.cell(col_width, 6, 'ASSINATURA DO 1° PROPONENTE', 0, 0, 'C')
         pdf.cell(col_width, 6, 'ASSINATURA DO 2° PROPONENTE', 0, 1, 'C')
-
-    else:
+    else:  # Pessoa Jurídica
         pdf.set_font('Arial', 'B', 12)
-        pdf.cell(0, 8, 'PESSOA JURÍDICA', 0, 1)
-        pdf.ln(3)
+        pdf.cell(0, 8, 'PESSOA JURÍDICA', 0, 1, 'C')
+        pdf.ln(2)
         
+        # Dados da Imobiliária
         pdf.set_font('Arial', '', 10)
         pdf.cell(30, 6, 'CORRETOR(A):', 0, 0)
         pdf.cell(0, 6, dados.get('corretor', ''), 0, 1)
@@ -582,15 +649,16 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('numero_negocio', ''), 0, 1)
         pdf.ln(2)
         
+        # Dados da Empresa
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'DADOS DA EMPRESA', 0, 1)
         pdf.set_font('Arial', '', 10)
         
-        pdf.cell(60, 6, 'RAZÃO SOCIAL: ', 0, 0)
+        pdf.cell(60, 6, 'RAZÃO SOCIAL:', 0, 0)
         pdf.cell(0, 6, dados.get('razao_social', ''), 0, 1)
         
         pdf.cell(20, 6, 'CNPJ:', 0, 0)
-        pdf.cell(50, 6, dados.get('cnpj', ''), 0, 0)
+        pdf.cell(40, 6, dados.get('cnpj', ''), 0, 0)
         pdf.cell(25, 6, 'TELEFONE:', 0, 0)
         pdf.cell(0, 6, dados.get('telefone_empresa', ''), 0, 1)
         
@@ -598,13 +666,14 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('email', ''), 0, 1)
         pdf.ln(2)
         
+        # Endereço da Empresa
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'ENDEREÇO DA EMPRESA', 0, 1)
         pdf.set_font('Arial', '', 10)
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
-        pdf.cell(25, 6, dados.get('cep_empresa', ''), 0, 0)
-        pdf.cell(25, 6, 'ENDEREÇO:  ', 'B', 0)
+        pdf.cell(20, 6, dados.get('cep_empresa', ''), 0, 0)
+        pdf.cell(25, 6, 'ENDEREÇO:', 0, 0)
         pdf.cell(0, 6, dados.get('endereco_empresa', ''), 0, 1)
         
         pdf.cell(20, 6, 'NÚMERO:', 0, 0)
@@ -613,16 +682,17 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('bairro_empresa', ''), 0, 1)
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
-        pdf.cell(50, 6, dados.get('cidade_empresa', ''), 0, 0)
-        pdf.cell(25, 6, 'ESTADO:  ', 0, 0)
+        pdf.cell(40, 6, dados.get('cidade_empresa', ''), 0, 0)
+        pdf.cell(25, 6, 'ESTADO:', 0, 0)
         pdf.cell(0, 6, dados.get('estado_empresa', ''), 0, 1)
         pdf.ln(2)
         
+        # Dados do Administrador
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'DADOS DO ADMINISTRADOR', 0, 1)
         pdf.set_font('Arial', '', 10)
         
-        pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR: ', 0, 0)
+        pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR:', 0, 0)
         pdf.cell(0, 6, dados.get('nome_administrador', ''), 0, 1)
         
         pdf.cell(25, 6, 'GÊNERO:', 0, 0)
@@ -634,6 +704,7 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(40, 6, dados.get('cpf_administrador', ''), 0, 0)
         pdf.cell(25, 6, 'CELULAR:', 0, 0)
         pdf.cell(0, 6, dados.get('celular_administrador', ''), 0, 1)
+        
         pdf.cell(20, 6, 'E-MAIL:', 0, 0)
         pdf.cell(0, 6, dados.get('email_administrador', ''), 0, 1)
         
@@ -652,13 +723,14 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('regime_casamento_administrador', ''), 0, 1)
         pdf.ln(2)
         
+        # Endereço do Administrador
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 7, 'ENDEREÇO DO ADMINISTRADOR', 0, 1)
         pdf.set_font('Arial', '', 10)
         
         pdf.cell(15, 6, 'CEP:', 0, 0)
-        pdf.cell(25, 6, dados.get('cep_administrador', ''), 0, 0)
-        pdf.cell(25, 6, 'ENDEREÇO:  ', 'B', 0)
+        pdf.cell(20, 6, dados.get('cep_administrador', ''), 0, 0)
+        pdf.cell(25, 6, 'ENDEREÇO:', 0, 0)
         pdf.cell(0, 6, dados.get('endereco_administrador', ''), 0, 1)
         
         pdf.cell(20, 6, 'NÚMERO:', 0, 0)
@@ -667,24 +739,73 @@ def gerar_pdf_formatado(tipo, dados):
         pdf.cell(0, 6, dados.get('bairro_administrador', ''), 0, 1)
         
         pdf.cell(20, 6, 'CIDADE:', 0, 0)
-        pdf.cell(50, 6, dados.get('cidade_administrador', ''), 0, 0)
-        pdf.cell(25, 6, 'ESTADO:  ', 0, 0)
+        pdf.cell(40, 6, dados.get('cidade_administrador', ''), 0, 0)
+        pdf.cell(25, 6, 'ESTADO:', 0, 0)
         pdf.cell(0, 6, dados.get('estado_administrador', ''), 0, 1)
         pdf.ln(2)
         
+        # Pessoas Vinculadas
+        if 'pessoas_vinculadas' in dados and dados['pessoas_vinculadas']:
+            pdf.set_font('Arial', 'B', 11)
+            pdf.cell(0, 7, 'PESSOAS VINCULADAS', 0, 1)
+            
+            for pessoa in dados['pessoas_vinculadas']:
+                pdf.set_font('Arial', '', 10)
+                pdf.cell(0, 6, f"Tipo: {pessoa.get('tipo', '')}", 0, 1)
+                pdf.cell(0, 6, f"Nome: {pessoa.get('nome', '')}", 0, 1)
+                
+                pdf.cell(40, 6, f"CPF: {formatar_cpf(pessoa.get('cpf', ''))}", 0, 0)
+                pdf.cell(0, 6, f"Data Nascimento: {pessoa.get('data_nascimento', '')}", 0, 1)
+                
+                pdf.cell(40, 6, f"Estado Civil: {pessoa.get('estado_civil', '')}", 0, 0)
+                pdf.cell(0, 6, f"Regime Casamento: {pessoa.get('regime_casamento', '')}", 0, 1)
+                
+                pdf.cell(40, 6, f"União Estável: {pessoa.get('uniao_estavel', 'NÃO')}", 0, 0)
+                pdf.cell(0, 6, f"Cargo: {pessoa.get('cargo', '')}", 0, 1)
+                
+                pdf.cell(40, 6, f"Celular: {formatar_telefone(pessoa.get('celular', ''))}", 0, 0)
+                pdf.cell(0, 6, f"E-mail: {pessoa.get('email', '')}", 0, 1)
+                
+                # Endereço
+                pdf.set_font('Arial', 'B', 10)
+                pdf.cell(0, 6, 'Endereço:', 0, 1)
+                pdf.set_font('Arial', '', 10)
+                
+                pdf.cell(15, 6, 'CEP:', 0, 0)
+                pdf.cell(25, 6, pessoa.get('cep', ''), 0, 0)
+                pdf.cell(25, 6, 'Endereço:', 0, 0)
+                pdf.cell(0, 6, pessoa.get('endereco', ''), 0, 1)
+                
+                pdf.cell(20, 6, 'Número:', 0, 0)
+                pdf.cell(20, 6, pessoa.get('numero', ''), 0, 0)
+                pdf.cell(20, 6, 'Bairro:', 0, 0)
+                pdf.cell(0, 6, pessoa.get('bairro', ''), 0, 1)
+                
+                pdf.cell(20, 6, 'Cidade:', 0, 0)
+                pdf.cell(40, 6, pessoa.get('cidade', ''), 0, 0)
+                pdf.cell(25, 6, 'Estado:', 0, 0)
+                pdf.cell(0, 6, pessoa.get('estado', ''), 0, 1)
+                
+                pdf.ln(2)
+        
+        # Termo de consentimento
         pdf.set_font('Arial', '', 8)
         pdf.multi_cell(0, 4, 'Para os fins da Lei 13.709/18, o titular concorda com: (i) o tratamento de seus dados pessoais e de seu cônjuge, quando for o caso, para os fins relacionados ao cumprimento das obrigações previstas na Lei, nesta ficha cadastral ou dela decorrente; e (ii) o envio de seus dados pessoais e da documentação respectiva a órgãos e entidades tais como a Secretaria da Fazenda Municipal, administração do condomínio, Cartórios, ao credor fiduciário, à companhia securitizadora e a outras pessoas, nos limites permitidos em Lei.')
-    
-        pdf.ln(2)
+        
+        pdf.ln(5)
         pdf.cell(0, 5, f"UBERLÂNDIA/MG, {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
-    
+        
+        
         pdf.ln(8)
         pdf.set_font('Arial', '', 10)
+        col_width = pdf.w / 2 - 15
         
-        pdf.cell(0, 6, '_______________________________', 0, 1, 'C')
-        pdf.cell(0, 6, 'ASSINATURA DO ADMINISTRADOR', 0, 1, 'C')
+        pdf.cell(col_width, 6, '_______________________________', 0, 0, 'C')
+        pdf.cell(col_width, 6, '_______________________________', 0, 1, 'C')
+        pdf.cell(col_width, 6, 'ASSINATURA DO ADMINISTRADOR', 0, 0, 'C')
+        pdf.cell(col_width, 6, '2º PROPONENTE/CÔNJUGE/SÓCIO', 0, 1, 'C')
         pdf.ln(10)
-    
+
     temp_dir = tempfile.mkdtemp()
     pdf_path = os.path.join(temp_dir, f"ficha_{tipo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf")
     pdf.output(pdf_path)
@@ -746,7 +867,7 @@ def salvar_cliente_pf(cliente, usuario_id):
             cliente.get('bairro_conjuge', ''), cliente.get('cidade_conjuge', ''),
             cliente.get('estado_conjuge', ''), cliente['data_cadastro'], 
             cliente['corretor'], cliente['imobiliaria'], cliente['numero_negocio'],
-            usuario_id  # Este era o valor faltante
+            usuario_id
         ))
     
     conn.commit()
@@ -758,7 +879,42 @@ def salvar_cliente_pj(cliente, usuario_id):
     
     if 'id' in cliente:
         # Código de update permanece o mesmo
-        pass
+        cursor.execute('''
+        UPDATE clientes_pj SET
+            razao_social = ?, cnpj = ?, email = ?, telefone_empresa = ?,
+            cep_empresa = ?, endereco_empresa = ?, numero_empresa = ?,
+            bairro_empresa = ?, cidade_empresa = ?, estado_empresa = ?,
+            genero_administrador = ?, nome_administrador = ?, data_nascimento_administrador = ?,
+            cpf_administrador = ?, celular_administrador = ?, email_administrador = ?,
+            nacionalidade_administrador = ?, profissao_administrador = ?,
+            estado_civil_administrador = ?, regime_casamento_administrador = ?,
+            uniao_estavel_administrador = ?, cep_administrador = ?,
+            endereco_administrador = ?, numero_administrador = ?,
+            bairro_administrador = ?, cidade_administrador = ?,
+            estado_administrador = ?, corretor = ?, imobiliaria = ?,
+            numero_negocio = ?
+        WHERE id = ?
+        ''', (
+            cliente['razao_social'], cliente['cnpj'], cliente.get('email', ''),
+            cliente.get('telefone_empresa', ''), cliente.get('cep_empresa', ''),
+            cliente.get('endereco_empresa', ''), cliente.get('numero_empresa', ''),
+            cliente.get('bairro_empresa', ''), cliente.get('cidade_empresa', ''),
+            cliente.get('estado_empresa', ''), cliente['genero_administrador'],
+            cliente['nome_administrador'], cliente.get('data_nascimento_administrador', ''),
+            cliente['cpf_administrador'], cliente['celular_administrador'],
+            cliente.get('email_administrador', ''),
+            cliente.get('nacionalidade_administrador', 'BRASILEIRA'),
+            cliente.get('profissao_administrador', ''),
+            cliente.get('estado_civil_administrador', ''),
+            cliente.get('regime_casamento_administrador', ''),
+            cliente.get('uniao_estavel_administrador', 'NÃO'),
+            cliente.get('cep_administrador', ''), cliente.get('endereco_administrador', ''),
+            cliente.get('numero_administrador', ''), cliente.get('bairro_administrador', ''),
+            cliente.get('cidade_administrador', ''), cliente.get('estado_administrador', ''),
+            cliente.get('corretor', ''), cliente.get('imobiliaria', ''),
+            cliente.get('numero_negocio', ''), cliente['id']
+        ))
+        empresa_id = cliente['id']
     else:
         cursor.execute('''
         INSERT INTO clientes_pj (
@@ -790,11 +946,13 @@ def salvar_cliente_pj(cliente, usuario_id):
             cliente.get('cidade_administrador', ''), cliente.get('estado_administrador', ''),
             cliente['data_cadastro'], cliente.get('corretor', ''),
             cliente.get('imobiliaria', ''), cliente.get('numero_negocio', ''),
-            usuario_id  # Este era o valor faltante
+            usuario_id
         ))
+        empresa_id = cursor.lastrowid
     
     conn.commit()
     conn.close()
+    return empresa_id
 
 def obter_cliente_pf_por_id(cliente_id):
     conn = sqlite3.connect(DB_NAME)
@@ -814,13 +972,26 @@ def obter_cliente_pj_por_id(cliente_id):
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM clientes_pj WHERE id = ?', (cliente_id,))
     cliente = cursor.fetchone()
+    conn.close()
+    
     if cliente:
         cols = [column[0] for column in cursor.description]
-        cliente_dict = dict(zip(cols, cliente))
-    else:
-        cliente_dict = None
-    conn.close()
-    return cliente_dict
+        return dict(zip(cols, cliente))
+    return None
+
+# Na parte de edição:
+if 'editar_pj_id' in st.session_state:
+    cliente_editando = obter_cliente_pj_por_id(st.session_state['editar_pj_id'])
+    
+    if not cliente_editando:
+        st.error("Registro não encontrado no banco de dados!")
+        del st.session_state['editar_pj_id']
+        st.rerun()
+    
+    st.warning(f"Editando registro ID: {st.session_state['editar_pj_id']}")
+    if st.button("Cancelar Edição"):
+        del st.session_state['editar_pj_id']
+        st.rerun()
 
 def excluir_cliente_pf(cliente_id):
     conn = sqlite3.connect(DB_NAME)
@@ -833,6 +1004,8 @@ def excluir_cliente_pj(cliente_id):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute('DELETE FROM clientes_pj WHERE id = ?', (cliente_id,))
+    # Remove também as pessoas vinculadas
+    cursor.execute('DELETE FROM pessoas_vinculadas_pj WHERE empresa_id = ?', (cliente_id,))
     conn.commit()
     conn.close()
 
@@ -1013,16 +1186,16 @@ else:
             cliente_editando = obter_cliente_pf_por_id(st.session_state['editar_pf_id'])
             if cliente_editando:
                 st.warning(f"Editando registro ID: {st.session_state['editar_pf_id']}")
-                if st.button("Cancelar Edição"):
+                if st.button("Cancelar Edição", key="cancelar_edicao_pf"):
                     del st.session_state['editar_pf_id']
                     st.rerun()
-        
         with st.form(key="form_pf"):
             # Dados da Imobiliária
             st.subheader("Dados da Imobiliária")
             col1, col2 = st.columns(2)
             with col1:
-                corretor = st.text_input("Corretor(a)", value=cliente_editando['corretor'] if 'editar_pf_id' in st.session_state else "")
+                corretor = st.text_input("Corretor(a)", 
+                                        value=cliente_editando.get('corretor', '') if 'editar_pj_id' in st.session_state else "")
                 imobiliaria = st.text_input("Imobiliária", value=cliente_editando['imobiliaria'] if 'editar_pf_id' in st.session_state else " ")
             with col2:
                 numero_negocio = st.text_input("Nº do Negócio", value=cliente_editando['numero_negocio'] if 'editar_pf_id' in st.session_state else "")
@@ -1401,7 +1574,7 @@ else:
             cliente_editando = obter_cliente_pj_por_id(st.session_state['editar_pj_id'])
             if cliente_editando:
                 st.warning(f"Editando registro ID: {st.session_state['editar_pj_id']}")
-                if st.button("Cancelar Edição"):
+                if st.button("Cancelar Edição", key="cancelar_edicao_pj"):
                     del st.session_state['editar_pj_id']
                     st.rerun()
         
@@ -1573,6 +1746,128 @@ else:
                                                    value=cliente_editando.get('estado_administrador', '') if 'editar_pj_id' in st.session_state else "",
                                                    key="estado_administrador_pj")
             
+            # Nova seção para Pessoas Vinculadas
+            st.subheader("Pessoas Vinculadas à Empresa")
+            
+            # Se estiver editando, carregar pessoas vinculadas existentes
+            pessoas_vinculadas = []
+            if 'editar_pj_id' in st.session_state:
+                pessoas_vinculadas = obter_pessoas_vinculadas(st.session_state['editar_pj_id'])
+            
+            # Container para adicionar nova pessoa
+            # No formulário de adição de pessoa vinculada (dentro do with tab2:)
+            with st.expander("Adicionar Nova Pessoa Vinculada"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    tipo_pessoa = st.radio("Tipo de Pessoa", ["Sócio", "Diretor", "Administrador", "Outro"], horizontal=True, key="tipo_pessoa_pj")
+                    nome_pessoa = st.text_input("Nome Completo *", key="nome_pessoa_pj")
+                    genero_pessoa = st.radio("Gênero", ["MASCULINO", "FEMININO"], key="genero_pessoa_pj", horizontal=True)
+                    cpf_pessoa = st.text_input("CPF *", help="Formato: 000.000.000-00", key="cpf_pessoa_pj")
+                    data_nascimento_pessoa = st.date_input("Data de Nascimento", format="DD/MM/YYYY", key="data_nascimento_pessoa_pj")
+                    
+                    # Campos novos para estado civil
+                    estado_civil_pessoa = st.selectbox("Estado Civil", 
+                                                    ["", "CASADO(A)", "SOLTEIRO(A)", "VIÚVO(A)", "DIVORCIADO(A)"],
+                                                    key="estado_civil_pessoa_pj")
+                    
+                    regime_casamento_pessoa = st.selectbox("Regime de Casamento", 
+                                                        ["", "COMUNHÃO UNIVERSAL DE BENS", "SEPARAÇÃO DE BENS", 
+                                                        "COMUNHÃO PARCIAL DE BENS", "COMUNHÃO DE BENS (REGIME ÚNICO ANTES DE 1977)"],
+                                                        key="regime_casamento_pessoa_pj")
+                    
+                    uniao_estavel_pessoa = st.checkbox("União Estável", key="uniao_estavel_pessoa_pj")
+                    
+                with col2:
+                    cargo_pessoa = st.text_input("Cargo/Função", key="cargo_pessoa_pj")
+                    celular_pessoa = st.text_input("Celular", help="Formato: (00) 00000-0000", key="celular_pessoa_pj")
+                    email_pessoa = st.text_input("E-mail", key="email_pessoa_pj")
+                    
+                    # Campos de endereço
+                    st.markdown("**Endereço**")
+                    cep_pessoa = st.text_input("CEP", help="Formato: 00000-000", key="cep_pessoa_pj")
+                    
+                    buscar_cep_pessoa = st.form_submit_button("Buscar CEP")
+                    if buscar_cep_pessoa and st.session_state.get("cep_pessoa_pj", ""):
+                        cep_limpo = re.sub(r'[^0-9]', '', st.session_state.cep_pessoa_pj)
+                        if len(cep_limpo) == 8:
+                            endereco_info = buscar_cep(cep_limpo)
+                            if endereco_info:
+                                st.session_state.endereco_pessoa_pj = endereco_info.get('logradouro', '')
+                                st.session_state.bairro_pessoa_pj = endereco_info.get('bairro', '')
+                                st.session_state.cidade_pessoa_pj = endereco_info.get('cidade', '')
+                                st.session_state.estado_pessoa_pj = endereco_info.get('estado', '')
+                                st.rerun()
+                    
+                    endereco_pessoa = st.text_input("Endereço", key="endereco_pessoa_pj")
+                    numero_pessoa = st.text_input("Número", key="numero_pessoa_pj")
+                    bairro_pessoa = st.text_input("Bairro", key="bairro_pessoa_pj")
+                    cidade_pessoa = st.text_input("Cidade", key="cidade_pessoa_pj")
+                    estado_pessoa = st.text_input("Estado", key="estado_pessoa_pj")
+                
+                # Botão para adicionar a pessoa
+                if st.form_submit_button("Adicionar Pessoa"):
+                    if nome_pessoa and cpf_pessoa:
+                        nova_pessoa = {
+                            'tipo': tipo_pessoa,
+                            'nome': nome_pessoa,
+                            'genero': genero_pessoa,
+                            'cpf': cpf_pessoa,
+                            'data_nascimento': data_nascimento_pessoa.strftime('%d/%m/%Y') if data_nascimento_pessoa else "",
+                            'estado_civil': estado_civil_pessoa,
+                            'regime_casamento': regime_casamento_pessoa,
+                            'uniao_estavel': "SIM" if uniao_estavel_pessoa else "NÃO",
+                            'cargo': cargo_pessoa,
+                            'celular': celular_pessoa,
+                            'email': email_pessoa,
+                            'cep': re.sub(r'[^0-9]', '', st.session_state.get("cep_pessoa_pj", "")),
+                            'endereco': st.session_state.get("endereco_pessoa_pj", ""),
+                            'numero': st.session_state.get("numero_pessoa_pj", ""),
+                            'bairro': st.session_state.get("bairro_pessoa_pj", ""),
+                            'cidade': st.session_state.get("cidade_pessoa_pj", ""),
+                            'estado': st.session_state.get("estado_pessoa_pj", ""),
+                            'data_cadastro': datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+                        }
+                        
+                        if 'editar_pj_id' in st.session_state:
+                            adicionar_pessoa_vinculada(st.session_state['editar_pj_id'], nova_pessoa)
+                            st.success("Pessoa adicionada com sucesso!")
+                            st.rerun()
+                        else:
+                            if 'pessoas_temp' not in st.session_state:
+                                st.session_state.pessoas_temp = []
+                            st.session_state.pessoas_temp.append(nova_pessoa)
+                            st.success("Pessoa adicionada (será salva com a empresa)")
+            
+            # Lista de pessoas vinculadas (para visualização e remoção)
+            if pessoas_vinculadas or ('pessoas_temp' in st.session_state and st.session_state.pessoas_temp):
+                st.markdown("**Pessoas Vinculadas Cadastradas**")
+                
+                # Combine pessoas temporárias e do banco de dados
+                todas_pessoas = []
+                if 'pessoas_temp' in st.session_state:
+                    todas_pessoas.extend(st.session_state.pessoas_temp)
+                if pessoas_vinculadas:
+                    todas_pessoas.extend(pessoas_vinculadas)
+                
+                for idx, pessoa in enumerate(todas_pessoas):
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"""
+                        **{pessoa.get('tipo', 'Pessoa')}**: {pessoa['nome']}  
+                        CPF: {formatar_cpf(pessoa['cpf'])} | Cargo: {pessoa.get('cargo', '')}  
+                        Celular: {formatar_telefone(pessoa.get('celular', ''))} | E-mail: {pessoa.get('email', '')}
+                        """)
+                    with col2:
+                        if st.form_submit_button(f"Remover {idx+1}"):
+                            if 'id' in pessoa:  # Pessoa já está no banco
+                                remover_pessoa_vinculada(pessoa['id'])
+                                st.success("Pessoa removida!")
+                                st.rerun()
+                            else:  # Pessoa temporária
+                                st.session_state.pessoas_temp.remove(pessoa)
+                                st.success("Pessoa removida!")
+                                st.rerun()
+            
             # Termo de consentimento
             st.markdown("""
             **Para os fins da Lei 13.709/18, o titular concorda com:**  
@@ -1581,7 +1876,7 @@ else:
             (ii) o envio de seus dados pessoais e da documentação respectiva a órgãos e entidades tais como a Secretaria da Fazenda Municipal,
             administração do condomínio, Cartórios, ao credor fiduciário, à companhia securitizadora e a outras pessoas, nos limites permitidos em Lei.
             """)
-            
+        
             # Botões de ação
             col1, col2 = st.columns(2)
             with col1:
@@ -1642,7 +1937,14 @@ else:
                     novo_cliente['id'] = st.session_state['editar_pj_id']
                 
                 try:
-                    salvar_cliente_pj(novo_cliente, st.session_state['usuario']['id'])
+                    empresa_id = salvar_cliente_pj(novo_cliente, st.session_state['usuario']['id'])
+                    
+                    # Salvar pessoas temporárias no banco de dados
+                    if 'pessoas_temp' in st.session_state and st.session_state.pessoas_temp:
+                        for pessoa in st.session_state.pessoas_temp:
+                            adicionar_pessoa_vinculada(empresa_id, pessoa)
+                        del st.session_state.pessoas_temp
+                    
                     st.session_state.clientes_pj = carregar_clientes_pj(st.session_state['usuario']['id'])
                     st.success("Cliente cadastrado com sucesso!")
                     
@@ -1689,6 +1991,12 @@ else:
                 'numero_negocio': numero_negocio,
                 'data_cadastro': datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             }
+            
+            # Incluir pessoas vinculadas no PDF
+            if 'pessoas_temp' in st.session_state:
+                dados_impressao['pessoas_vinculadas'] = st.session_state.pessoas_temp
+            elif 'editar_pj_id' in st.session_state:
+                dados_impressao['pessoas_vinculadas'] = obter_pessoas_vinculadas(st.session_state['editar_pj_id'])
             
             # Gera o PDF
             pdf_path_pj = gerar_pdf_formatado('pj', dados_impressao)
@@ -1833,6 +2141,10 @@ else:
                             else:
                                 if 'uniao_estavel_administrador' in dados_formatados:
                                     dados_formatados['uniao_estavel_administrador'] = 'SIM' if dados_formatados['uniao_estavel_administrador'] == 'SIM' else 'NÃO'
+                            
+                            # Para PJ, adicionar pessoas vinculadas
+                            if tipo_consulta == "Pessoa Jurídica":
+                                dados_formatados['pessoas_vinculadas'] = obter_pessoas_vinculadas(registro_id)
                             
                             # Gerar PDF
                             pdf_path = gerar_pdf_formatado('pf' if tipo_consulta == "Pessoa Física" else 'pj', dados_formatados)
