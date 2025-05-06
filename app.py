@@ -749,44 +749,66 @@ def gerar_pdf_formatado(tipo, dados):
             pdf.set_font('Arial', 'B', 11)
             pdf.cell(0, 7, 'PESSOAS VINCULADAS', 0, 1)
             
-            for pessoa in dados['pessoas_vinculadas']:
-                pdf.set_font('Arial', '', 10)
-                pdf.cell(0, 6, f"Tipo: {pessoa.get('tipo', '')}", 0, 1)
-                pdf.cell(0, 6, f"Nome: {pessoa.get('nome', '')}", 0, 1)
-                
-                pdf.cell(40, 6, f"CPF: {formatar_cpf(pessoa.get('cpf', ''))}", 0, 0)
-                pdf.cell(0, 6, f"Data Nascimento: {pessoa.get('data_nascimento', '')}", 0, 1)
-                
-                pdf.cell(40, 6, f"Estado Civil: {pessoa.get('estado_civil', '')}", 0, 0)
-                pdf.cell(0, 6, f"Regime Casamento: {pessoa.get('regime_casamento', '')}", 0, 1)
-                
-                pdf.cell(40, 6, f"União Estável: {pessoa.get('uniao_estavel', 'NÃO')}", 0, 0)
-                pdf.cell(0, 6, f"Cargo: {pessoa.get('cargo', '')}", 0, 1)
-                
-                pdf.cell(40, 6, f"Celular: {formatar_telefone(pessoa.get('celular', ''))}", 0, 0)
-                pdf.cell(0, 6, f"E-mail: {pessoa.get('email', '')}", 0, 1)
-                
-                # Endereço
+            for idx, pessoa in enumerate(dados['pessoas_vinculadas']):
+                # Título com número da pessoa
                 pdf.set_font('Arial', 'B', 10)
-                pdf.cell(0, 6, 'Endereço:', 0, 1)
+                pdf.cell(0, 6, f'PESSOA VINCULADA {idx + 1} - {pessoa.get("tipo", "").upper()}', 0, 1)
+                pdf.set_font('Arial', '', 10)
+                
+                # Dados Pessoais (mesma estrutura do administrador)
+                pdf.cell(60, 6, 'NOME COMPLETO SEM ABREVIAR:', 0, 0)
+                pdf.cell(0, 6, pessoa.get('nome', ''), 0, 1)
+                
+                pdf.cell(25, 6, 'GÊNERO:', 0, 0)
+                pdf.cell(25, 6, pessoa.get('genero', ''), 0, 0)
+                pdf.cell(40, 6, 'DATA NASCIMENTO:', 0, 0)
+                pdf.cell(0, 6, pessoa.get('data_nascimento', ''), 0, 1)
+                
+                pdf.cell(20, 6, 'CPF:', 0, 0)
+                pdf.cell(40, 6, formatar_cpf(pessoa.get('cpf', '')), 0, 0)
+                pdf.cell(25, 6, 'CELULAR:', 0, 0)
+                pdf.cell(0, 6, formatar_telefone(pessoa.get('celular', '')), 0, 1)
+                
+                pdf.cell(20, 6, 'E-MAIL:', 0, 0)
+                pdf.cell(0, 6, pessoa.get('email', ''), 0, 1)
+                
+                pdf.cell(35, 6, 'CARGO/FUNÇÃO:', 0, 0)
+                pdf.cell(40, 6, pessoa.get('cargo', ''), 0, 0)
+                
+                # Estado Civil com espaços (alterado)
+                pdf.cell(30, 6, 'ESTADO CIVIL:   ', 0, 0)  # 3 espaços adicionais
+                pdf.cell(0, 6, pessoa.get('estado_civil', ''), 0, 1)
+                
+                pdf.cell(30, 6, 'UNIÃO ESTÁVEL:', 0, 0)
+                pdf.cell(0, 6, pessoa.get('uniao_estavel', 'NÃO'), 0, 1)
+                
+                # Regime Casamento com espaços (alterado)
+                pdf.cell(45, 6, 'REGIME CASAMENTO:   ', 0, 0)  # 3 espaços adicionais
+                pdf.cell(0, 6, pessoa.get('regime_casamento', ''), 0, 1)
+                pdf.ln(2)
+                
+                # Endereço (mesma estrutura do administrador)
+                pdf.set_font('Arial', 'B', 11)
+                pdf.cell(0, 7, 'ENDEREÇO', 0, 1)
                 pdf.set_font('Arial', '', 10)
                 
                 pdf.cell(15, 6, 'CEP:', 0, 0)
-                pdf.cell(25, 6, pessoa.get('cep', ''), 0, 0)
-                pdf.cell(25, 6, 'Endereço:', 0, 0)
+                pdf.cell(20, 6, pessoa.get('cep', ''), 0, 0)
+                pdf.cell(25, 6, 'ENDEREÇO:', 0, 0)
                 pdf.cell(0, 6, pessoa.get('endereco', ''), 0, 1)
                 
-                pdf.cell(20, 6, 'Número:', 0, 0)
+                pdf.cell(20, 6, 'NÚMERO:', 0, 0)
                 pdf.cell(20, 6, pessoa.get('numero', ''), 0, 0)
-                pdf.cell(20, 6, 'Bairro:', 0, 0)
+                pdf.cell(20, 6, 'BAIRRO:', 0, 0)
                 pdf.cell(0, 6, pessoa.get('bairro', ''), 0, 1)
                 
-                pdf.cell(20, 6, 'Cidade:', 0, 0)
+                pdf.cell(20, 6, 'CIDADE:', 0, 0)
                 pdf.cell(40, 6, pessoa.get('cidade', ''), 0, 0)
-                pdf.cell(25, 6, 'Estado:', 0, 0)
+                pdf.cell(25, 6, 'ESTADO:', 0, 0)
                 pdf.cell(0, 6, pessoa.get('estado', ''), 0, 1)
                 
-                pdf.ln(2)
+                # Espaço entre pessoas vinculadas
+                pdf.ln(4)
         
         # Termo de consentimento
         pdf.set_font('Arial', '', 8)
